@@ -142,7 +142,7 @@ class GVAudio
     int stopStream();
     int startStream(int samp_rate=0, int chan=0, int frm_size=0);
     //caller must clean buffer after consuming by calling free_buff
-    AudBuff popAudBuff();
+    AudBuff* popAudBuff();
     void free_buff(AudBuff *ab);
 };
 

@@ -16439,7 +16439,7 @@ $as_echo "#define AC_APPLE_UNIVERSAL_BUILD 1" >>confdefs.h
 
 
 
-ac_config_files="$ac_config_files Makefile pkgconfig/gvideo-0.1.pc pkgconfig/gvrender-0.1.pc libgvideo/Makefile libgvrender/Makefile gvideo-gtk/Makefile common/Makefile pixmaps/Makefile po/Makefile.in"
+ac_config_files="$ac_config_files Makefile pkgconfig/gvideo-0.1.pc pkgconfig/gvrender-0.1.pc pkgconfig/gvaudio-0.1.pc libgvideo/Makefile libgvrender/Makefile libgvaudio/Makefile gvideo-gtk/Makefile common/Makefile pixmaps/Makefile po/Makefile.in"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -17527,8 +17527,10 @@ do
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "pkgconfig/gvideo-0.1.pc") CONFIG_FILES="$CONFIG_FILES pkgconfig/gvideo-0.1.pc" ;;
     "pkgconfig/gvrender-0.1.pc") CONFIG_FILES="$CONFIG_FILES pkgconfig/gvrender-0.1.pc" ;;
+    "pkgconfig/gvaudio-0.1.pc") CONFIG_FILES="$CONFIG_FILES pkgconfig/gvaudio-0.1.pc" ;;
     "libgvideo/Makefile") CONFIG_FILES="$CONFIG_FILES libgvideo/Makefile" ;;
     "libgvrender/Makefile") CONFIG_FILES="$CONFIG_FILES libgvrender/Makefile" ;;
+    "libgvaudio/Makefile") CONFIG_FILES="$CONFIG_FILES libgvaudio/Makefile" ;;
     "gvideo-gtk/Makefile") CONFIG_FILES="$CONFIG_FILES gvideo-gtk/Makefile" ;;
     "common/Makefile") CONFIG_FILES="$CONFIG_FILES common/Makefile" ;;
     "pixmaps/Makefile") CONFIG_FILES="$CONFIG_FILES pixmaps/Makefile" ;;

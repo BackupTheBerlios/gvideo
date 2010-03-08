@@ -3,7 +3,7 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 
-Name: gvideo
+Name: @GVIDEO_LD_NAME@
 Description: gvideo v4l2 C++ library.
 Version: @VERSION@
 Libs: -L${libdir} -l@GVIDEO_LD_NAME@-@GVIDEO_API_VERSION@

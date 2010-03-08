@@ -319,8 +319,10 @@ dnl -----------------------------------------------
 AC_OUTPUT(Makefile \
           pkgconfig/gvideo-0.1.pc \
           pkgconfig/gvrender-0.1.pc \
+          pkgconfig/gvaudio-0.1.pc \
           libgvideo/Makefile \
           libgvrender/Makefile \
+          libgvaudio/Makefile \
           gvideo-gtk/Makefile \
           common/Makefile \
           pixmaps/Makefile \

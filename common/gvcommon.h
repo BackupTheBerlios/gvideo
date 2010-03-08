@@ -30,9 +30,12 @@
 
 #include <inttypes.h>
 #include <sys/types.h>
+#include <unistd.h>
 #include <linux/videodev2.h>
+#include <pthread.h>
 #include <string>
 #include <sstream>
+
 
 typedef int8_t     INT8;
 typedef uint8_t    UINT8;
@@ -108,5 +111,46 @@ class GVString
 
 };
 
+class GVSleep
+{
+    long sleep_us;
+    int n_loops;
+    bool *var;
+    pthread_mutex_t *mutex;
+
+  public:
+    GVSleep(int sleep_ms, bool* _var=NULL, pthread_mutex_t * _mutex=NULL, int _n_loops=30)
+    {
+        sleep_us = sleep_ms * 1000; /*convert to microseconds*/
+        var = _var;
+        mutex = _mutex;
+        n_loops = _n_loops;
+    };
+    /*wait on cond by sleeping for n_loops of sleep_ms ms (test var==val every loop)*/
+    /*return remaining number of loops (if 0 then a stall ocurred)              */
+    int wait_ms(bool val=true)
+    {
+        int n=n_loops;
+        pthread_mutex_lock( mutex );
+        if(var != NULL)
+        {
+            while( (*var != val) && ( n > 0 ) ) /*wait at max (n_loops*sleep_ms) ms */
+            {
+                pthread_mutex_unlock( mutex );
+                n--;
+                usleep( sleep_us );/*sleep for sleep_ms ms*/
+                pthread_mutex_lock( mutex );
+            }
+            pthread_mutex_unlock( mutex );
+        }
+        else
+        {
+            pthread_mutex_unlock( mutex );
+            usleep( sleep_us );/*sleep for sleep_ms ms*/
+        }
+        
+        return (n);
+    };
+};
 
 #endif

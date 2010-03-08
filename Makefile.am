@@ -2,6 +2,7 @@
 
 SUBDIRS = $(GVIDEO_LIBRARY_NAME) \
           $(GVRENDER_LIBRARY_NAME) \
+          $(GVAUDIO_LIBRARY_NAME) \
           $(GVIDEO_GTK_NAME) \
           common \
           po \
@@ -10,6 +11,7 @@ SUBDIRS = $(GVIDEO_LIBRARY_NAME) \
 #Distribute these directories:
 DIST_SUBDIRS = $(GVIDEO_LIBRARY_NAME) \
                $(GVRENDER_LIBRARY_NAME) \
+               $(GVAUDIO_LIBRARY_NAME) \
                $(GVIDEO_GTK_NAME) \
                common \
                po \

@@ -397,14 +397,14 @@ int GVAudio:: recordCallback (const void *inputBuffer, void *outputBuffer,
 }
 
 //caller must clean buffer after consuming
-AudBuff GVAudio::popAudBuff()
+AudBuff* GVAudio::popAudBuff()
 {
     pthread_mutex_lock( &mutex );
     AudBuff ab = audio_buff.front();
     audio_buff.pop();
     pthread_mutex_unlock( &mutex );
     
-    return (ab);
+    return (&ab);
 }
 
 void GVAudio::free_buff(AudBuff *ab)
