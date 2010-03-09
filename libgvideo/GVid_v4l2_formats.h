@@ -41,9 +41,9 @@ class GVFormats
 {
     struct SupFormats
     {
-	    int format;          //v4l2 software(guvcview) supported format
-	    std::string mode;          //mode (fourcc - lower case)
-	    int hardware;        //hardware supported (1 or 0)
+        int format;          //v4l2 software(guvcview) supported format
+        std::string mode;          //mode (fourcc - lower case)
+        int hardware;        //hardware supported (1 or 0)
     };
     
     std::vector<SupFormats> listSupFormats;

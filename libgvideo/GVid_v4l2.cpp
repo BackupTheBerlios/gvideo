@@ -1109,7 +1109,7 @@ int GVDevice::grab_frame(UINT8* data)
                         return ret;
                     }
                     buff_index = buf.index;
-                    ts = (UINT64) buf.timestamp.tv_sec * G_NSEC_PER_SEC +  buf.timestamp.tv_usec * 1000; //in nanosec
+                    ts = (UINT64) buf.timestamp.tv_sec * GV_NSEC_PER_SEC +  buf.timestamp.tv_usec * GV_MSEC_PER_SEC; //in nanosec
                     /* use buffer timestamp if set by the driver, otherwise use current system time */
                     if(ts > 0) timestamp[buff_index] = ts; 
                     else timestamp[buff_index] = time->ns_time_monotonic();

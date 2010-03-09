@@ -323,6 +323,7 @@ AC_OUTPUT(Makefile \
           libgvideo/Makefile \
           libgvrender/Makefile \
           libgvaudio/Makefile \
+          libgvencoder/Makefile \
           gvideo-gtk/Makefile \
           common/Makefile \
           pixmaps/Makefile \

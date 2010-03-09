@@ -27,7 +27,6 @@
 
 #include <string.h>
 #include <iostream>
-#include "libgvideo/GVid_time.h"
 #include "GVAudio.h"
 
 using namespace std;
@@ -311,7 +310,7 @@ void GVAudio::fill_audio_buffer()
                 time_stamp = 1; /*make it > 0 otherwise we will keep getting the same ts*/
         }
         else
-            time_stamp += (G_NSEC_PER_SEC * n_samp)/(samprate * channels);
+            time_stamp += (GV_NSEC_PER_SEC * n_samp)/(samprate * channels);
             
         AudBuff* ab = new AudBuff;
         ab->frame = new float[n_samp];

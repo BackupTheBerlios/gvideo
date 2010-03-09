@@ -1,7 +1,7 @@
 ## sub directory
 
-h_sources = 
-cpp_sources = 
+h_sources = GVMatroska.h
+cpp_sources = GVMatroska.cpp
 
 #Install the headers in a versioned directory - gvideo-x.x/libgvencoder:
 library_includedir=$(includedir)/$(PACKAGE)-$(PACKAGE_RELEASE)/$(GVENCODER_LIBRARY_NAME)

@@ -332,7 +332,7 @@ int main (int argc, char *argv[])
             dev->grab_frame(buf->raw_data);
             buf->frame_decode(dev->get_bytesused());
             video->render(buf->frame_data);
-            if((dev->get_timestamp() - timestamp) > 2 * G_NSEC_PER_SEC)
+            if((dev->get_timestamp() - timestamp) > 2 * GV_NSEC_PER_SEC)
             {
                 float frate = (dev->get_framecount() - framecount) / 2;
                 ostringstream s;

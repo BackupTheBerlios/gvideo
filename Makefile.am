@@ -3,6 +3,7 @@
 SUBDIRS = $(GVIDEO_LIBRARY_NAME) \
           $(GVRENDER_LIBRARY_NAME) \
           $(GVAUDIO_LIBRARY_NAME) \
+          $(GVENCODER_LIBRARY_NAME) \
           $(GVIDEO_GTK_NAME) \
           common \
           po \
@@ -12,6 +13,7 @@ SUBDIRS = $(GVIDEO_LIBRARY_NAME) \
 DIST_SUBDIRS = $(GVIDEO_LIBRARY_NAME) \
                $(GVRENDER_LIBRARY_NAME) \
                $(GVAUDIO_LIBRARY_NAME) \
+               $(GVENCODER_LIBRARY_NAME) \
                $(GVIDEO_GTK_NAME) \
                common \
                po \

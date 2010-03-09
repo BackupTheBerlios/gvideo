@@ -33,6 +33,8 @@
 #include <unistd.h>
 #include <linux/videodev2.h>
 #include <pthread.h>
+#include <cstdlib>
+#include <ctime>
 #include <string>
 #include <sstream>
 
@@ -67,6 +69,18 @@ typedef uint64_t   UINT64;
 #ifndef V4L2_PIX_FMT_SRGGB8
 #define V4L2_PIX_FMT_SRGGB8 v4l2_fourcc('R', 'G', 'G', 'B') /* RGRG.. GBGB..    */
 #endif 
+
+#ifndef GV_NSEC_PER_SEC
+#define GV_NSEC_PER_SEC 1000000000
+#endif
+
+#ifndef GV_USEC_PER_SEC
+#define GV_USEC_PER_SEC 1000000
+#endif
+
+#ifndef GV_MSEC_PER_SEC
+#define GV_MSEC_PER_SEC 1000
+#endif
 
 //convert from string template
 // args:
@@ -151,6 +165,68 @@ class GVSleep
         
         return (n);
     };
+};
+
+class GVRand
+{
+  public:
+    GVRand(unsigned int seed=0)
+    {
+        if(seed > 0)
+            srand(seed);
+        else
+            srand(time(NULL) + getpid());
+    }
+    int generate(int min=0, int max=RAND_MAX)
+    {
+        if (max > RAND_MAX)
+            max = RAND_MAX;
+        if (min < 0)
+            min = 0;
+        if (max < 0)
+            max = 1;
+        if (min > max)
+            min = max - 1;
+        return( rand() % (max-min+1) + min);
+    }
+};
+
+class GVTime
+{
+    struct timespec ts;
+    
+  public:
+    /*REAL TIME CLOCK*/
+    /*in nanoseconds*/
+    UINT64 ns_time ()
+    {
+	    clock_gettime(CLOCK_REALTIME, &ts);
+	    return ((UINT64) ts.tv_sec * GV_NSEC_PER_SEC + (UINT64) ts.tv_nsec);
+    }
+
+    /*MONOTONIC CLOCK*/
+    /*in nanosec*/
+    UINT64 ns_time_monotonic()
+    {
+	    clock_gettime(CLOCK_MONOTONIC, &ts);
+	    return ((UINT64) ts.tv_sec * GV_NSEC_PER_SEC + (UINT64) ts.tv_nsec);
+    }
+
+    /*REAL TIME CLOCK*/
+    /*in miliseconds*/
+    UINT64 ms_time ()
+    {
+	    clock_gettime(CLOCK_REALTIME, &ts);
+	    return ((UINT64) ts.tv_sec * GV_MSEC_PER_SEC + (UINT64) (ts.tv_nsec / GV_USEC_PER_SEC));
+    }
+
+    /*MONOTONIC CLOCK*/
+    /*in miliseconds*/
+    UINT64 ms_time_monotonic()
+    {
+    	clock_gettime(CLOCK_MONOTONIC, &ts);
+    	return ((UINT64) ts.tv_sec * GV_MSEC_PER_SEC + (UINT64) (ts.tv_nsec / GV_USEC_PER_SEC));
+    }
 };
 
 #endif

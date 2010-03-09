@@ -78,7 +78,7 @@ libgvideo_la_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am__objects_1 =
 am__objects_2 = GVid_v4l2.lo GVid_v4l2_formats.lo GVid_options.lo \
 	GVid_color_convert.lo GVid_mjpg_dec.lo GVid_buff.lo \
-	GVid_time.lo GVid_image.lo
+	GVid_image.lo
 am_libgvideo_la_OBJECTS = $(am__objects_1) $(am__objects_2)
 libgvideo_la_OBJECTS = $(am_libgvideo_la_OBJECTS)
 libgvideo_la_LINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) \
@@ -285,7 +285,6 @@ h_sources = gvideo.h \
             GVid_color_convert.h \
             GVid_mjpg_dec.h \
             GVid_buff.h \
-            GVid_time.h \
             GVid_image.h
 
 cpp_sources = GVid_v4l2.cpp \
@@ -294,7 +293,6 @@ cpp_sources = GVid_v4l2.cpp \
               GVid_color_convert.cpp \
               GVid_mjpg_dec.cpp \
               GVid_buff.cpp \
-              GVid_time.cpp \
               GVid_image.cpp
 
 
@@ -386,7 +384,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/GVid_image.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/GVid_mjpg_dec.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/GVid_options.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/GVid_time.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/GVid_v4l2.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/GVid_v4l2_formats.Plo@am__quote@
 

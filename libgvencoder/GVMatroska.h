@@ -1,0 +1,316 @@
+/*******************************************************************************#
+#           gvideo              http://gvideo.berlios.de                        #
+#                                                                               #
+#           Paulo Assis <pj.assis@gmail.com>                                    #
+#                                                                               #
+# This program is free software; you can redistribute it and/or modify          #
+# it under the terms of the GNU General Public License as published by          #
+# the Free Software Foundation; either version 2 of the License, or             #
+# (at your option) any later version.                                           #
+#                                                                               #
+# This program is distributed in the hope that it will be useful,               #
+# but WITHOUT ANY WARRANTY; without even the implied warranty of                #
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                 #
+# GNU General Public License for more details.                                  #
+#                                                                               #
+# You should have received a copy of the GNU General Public License             #
+# along with this program; if not, write to the Free Software                   #
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA     #
+#                                                                               #
+********************************************************************************/
+
+/*******************************************************************************#
+#                                                                               #
+#  GVMatroska class : gvideo matroska container class                           #
+#                                                                               #
+********************************************************************************/
+
+#ifndef GVMATROSKA_H
+#define GVMATROSKA_H
+
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include "gvcommon.h"
+
+#define CLSIZE    1048576
+#define CHECK(x)  do { if ((x) < 0) return -1; } while (0)
+#define TEST(x)  do { if ((x) < 0) goto error; } while (0)
+
+/* EBML version supported */
+#define EBML_VERSION 1
+
+/* top-level master-IDs */
+#define EBML_ID_HEADER             0x1A45DFA3
+
+/* IDs in the HEADER master */
+#define EBML_ID_EBMLVERSION        0x4286
+#define EBML_ID_EBMLREADVERSION    0x42F7
+#define EBML_ID_EBMLMAXIDLENGTH    0x42F2
+#define EBML_ID_EBMLMAXSIZELENGTH  0x42F3
+#define EBML_ID_DOCTYPE            0x4282
+#define EBML_ID_DOCTYPEVERSION     0x4287
+#define EBML_ID_DOCTYPEREADVERSION 0x4285
+
+/* general EBML types */
+#define EBML_ID_VOID               0xEC
+#define EBML_ID_CRC32              0xBF
+
+/*
+ * Matroska element IDs, max. 32 bits
+ */
+
+/* toplevel segment */
+#define MATROSKA_ID_SEGMENT    0x18538067
+
+/* Matroska top-level master IDs */
+#define MATROSKA_ID_INFO       0x1549A966
+#define MATROSKA_ID_TRACKS     0x1654AE6B
+#define MATROSKA_ID_CUES       0x1C53BB6B
+#define MATROSKA_ID_TAGS       0x1254C367
+#define MATROSKA_ID_SEEKHEAD   0x114D9B74
+#define MATROSKA_ID_ATTACHMENTS 0x1941A469
+#define MATROSKA_ID_CLUSTER    0x1F43B675
+#define MATROSKA_ID_CHAPTERS   0x1043A770
+
+/* IDs in the info master */
+#define MATROSKA_ID_TIMECODESCALE 0x2AD7B1
+#define MATROSKA_ID_DURATION   0x4489
+#define MATROSKA_ID_TITLE      0x7BA9
+#define MATROSKA_ID_WRITINGAPP 0x5741
+#define MATROSKA_ID_MUXINGAPP  0x4D80
+#define MATROSKA_ID_DATEUTC    0x4461
+#define MATROSKA_ID_SEGMENTUID 0x73A4
+
+/* ID in the tracks master */
+#define MATROSKA_ID_TRACKENTRY 0xAE
+
+/* IDs in the trackentry master */
+#define MATROSKA_ID_TRACKNUMBER 0xD7
+#define MATROSKA_ID_TRACKUID   0x73C5
+#define MATROSKA_ID_TRACKTYPE  0x83
+#define MATROSKA_ID_TRACKAUDIO 0xE1
+#define MATROSKA_ID_TRACKVIDEO 0xE0
+#define MATROSKA_ID_CODECID    0x86
+#define MATROSKA_ID_CODECPRIVATE 0x63A2
+#define MATROSKA_ID_CODECNAME  0x258688
+#define MATROSKA_ID_CODECINFOURL 0x3B4040
+#define MATROSKA_ID_CODECDOWNLOADURL 0x26B240
+#define MATROSKA_ID_CODECDECODEALL 0xAA
+#define MATROSKA_ID_TRACKNAME  0x536E
+#define MATROSKA_ID_TRACKLANGUAGE 0x22B59C
+#define MATROSKA_ID_TRACKFLAGENABLED 0xB9
+#define MATROSKA_ID_TRACKFLAGDEFAULT 0x88
+#define MATROSKA_ID_TRACKFLAGFORCED 0x55AA
+#define MATROSKA_ID_TRACKFLAGLACING 0x9C
+#define MATROSKA_ID_TRACKMINCACHE 0x6DE7
+#define MATROSKA_ID_TRACKMAXCACHE 0x6DF8
+#define MATROSKA_ID_TRACKDEFAULTDURATION 0x23E383
+#define MATROSKA_ID_TRACKCONTENTENCODINGS 0x6D80
+#define MATROSKA_ID_TRACKCONTENTENCODING 0x6240
+#define MATROSKA_ID_TRACKTIMECODESCALE 0x23314F
+#define MATROSKA_ID_TRACKMAXBLKADDID 0x55EE
+
+/* IDs in the trackvideo master */
+#define MATROSKA_ID_VIDEOFRAMERATE 0x2383E3
+#define MATROSKA_ID_VIDEODISPLAYWIDTH 0x54B0
+#define MATROSKA_ID_VIDEODISPLAYHEIGHT 0x54BA
+#define MATROSKA_ID_VIDEOPIXELWIDTH 0xB0
+#define MATROSKA_ID_VIDEOPIXELHEIGHT 0xBA
+#define MATROSKA_ID_VIDEOPIXELCROPB 0x54AA
+#define MATROSKA_ID_VIDEOPIXELCROPT 0x54BB
+#define MATROSKA_ID_VIDEOPIXELCROPL 0x54CC
+#define MATROSKA_ID_VIDEOPIXELCROPR 0x54DD
+#define MATROSKA_ID_VIDEODISPLAYUNIT 0x54B2
+#define MATROSKA_ID_VIDEOFLAGINTERLACED 0x9A
+#define MATROSKA_ID_VIDEOSTEREOMODE 0x53B9
+#define MATROSKA_ID_VIDEOASPECTRATIO 0x54B3
+#define MATROSKA_ID_VIDEOCOLORSPACE 0x2EB524
+
+/* IDs in the trackaudio master */
+#define MATROSKA_ID_AUDIOSAMPLINGFREQ 0xB5
+#define MATROSKA_ID_AUDIOOUTSAMPLINGFREQ 0x78B5
+
+#define MATROSKA_ID_AUDIOBITDEPTH 0x6264
+#define MATROSKA_ID_AUDIOCHANNELS 0x9F
+
+/* IDs in the content encoding master */
+#define MATROSKA_ID_ENCODINGORDER 0x5031
+#define MATROSKA_ID_ENCODINGSCOPE 0x5032
+#define MATROSKA_ID_ENCODINGTYPE 0x5033
+#define MATROSKA_ID_ENCODINGCOMPRESSION 0x5034
+#define MATROSKA_ID_ENCODINGCOMPALGO 0x4254
+#define MATROSKA_ID_ENCODINGCOMPSETTINGS 0x4255
+
+/* ID in the cues master */
+#define MATROSKA_ID_POINTENTRY 0xBB
+
+/* IDs in the pointentry master */
+#define MATROSKA_ID_CUETIME    0xB3
+#define MATROSKA_ID_CUETRACKPOSITION 0xB7
+
+/* IDs in the cuetrackposition master */
+#define MATROSKA_ID_CUETRACK   0xF7
+#define MATROSKA_ID_CUECLUSTERPOSITION 0xF1
+#define MATROSKA_ID_CUEBLOCKNUMBER 0x5378
+
+/* IDs in the tags master */
+#define MATROSKA_ID_TAG                 0x7373
+#define MATROSKA_ID_SIMPLETAG           0x67C8
+#define MATROSKA_ID_TAGNAME             0x45A3
+#define MATROSKA_ID_TAGSTRING           0x4487
+#define MATROSKA_ID_TAGLANG             0x447A
+#define MATROSKA_ID_TAGDEFAULT          0x44B4
+#define MATROSKA_ID_TAGTARGETS          0x63C0
+#define MATROSKA_ID_TAGTARGETS_TYPE       0x63CA
+#define MATROSKA_ID_TAGTARGETS_TYPEVALUE  0x68CA
+#define MATROSKA_ID_TAGTARGETS_TRACKUID   0x63C5
+#define MATROSKA_ID_TAGTARGETS_CHAPTERUID 0x63C4
+#define MATROSKA_ID_TAGTARGETS_ATTACHUID  0x63C6
+
+/* IDs in the seekhead master */
+#define MATROSKA_ID_SEEKENTRY  0x4DBB
+
+/* IDs in the seekpoint master */
+#define MATROSKA_ID_SEEKID     0x53AB
+#define MATROSKA_ID_SEEKPOSITION 0x53AC
+
+/* IDs in the cluster master */
+#define MATROSKA_ID_CLUSTERTIMECODE 0xE7
+#define MATROSKA_ID_CLUSTERPOSITION 0xA7
+#define MATROSKA_ID_CLUSTERPREVSIZE 0xAB
+#define MATROSKA_ID_BLOCKGROUP 0xA0
+#define MATROSKA_ID_SIMPLEBLOCK 0xA3
+
+/* IDs in the blockgroup master */
+#define MATROSKA_ID_BLOCK      0xA1
+#define MATROSKA_ID_BLOCKDURATION 0x9B
+#define MATROSKA_ID_BLOCKREFERENCE 0xFB
+
+/* IDs in the attachments master */
+#define MATROSKA_ID_ATTACHEDFILE        0x61A7
+#define MATROSKA_ID_FILEDESC            0x467E
+#define MATROSKA_ID_FILENAME            0x466E
+#define MATROSKA_ID_FILEMIMETYPE        0x4660
+#define MATROSKA_ID_FILEDATA            0x465C
+#define MATROSKA_ID_FILEUID             0x46AE
+
+/* IDs in the chapters master */
+#define MATROSKA_ID_EDITIONENTRY        0x45B9
+#define MATROSKA_ID_CHAPTERATOM         0xB6
+#define MATROSKA_ID_CHAPTERTIMESTART    0x91
+#define MATROSKA_ID_CHAPTERTIMEEND      0x92
+#define MATROSKA_ID_CHAPTERDISPLAY      0x80
+#define MATROSKA_ID_CHAPSTRING          0x85
+#define MATROSKA_ID_CHAPLANG            0x437C
+#define MATROSKA_ID_EDITIONUID          0x45BC
+#define MATROSKA_ID_EDITIONFLAGHIDDEN   0x45BD
+#define MATROSKA_ID_EDITIONFLAGDEFAULT  0x45DB
+#define MATROSKA_ID_EDITIONFLAGORDERED  0x45DD
+#define MATROSKA_ID_CHAPTERUID          0x73C4
+#define MATROSKA_ID_CHAPTERFLAGHIDDEN   0x98
+#define MATROSKA_ID_CHAPTERFLAGENABLED  0x4598
+#define MATROSKA_ID_CHAPTERPHYSEQUIV    0x63C3
+
+/* track type*/
+#define MATROSKA_TRACK_TYPE_NONE        0x0
+#define MATROSKA_TRACK_TYPE_VIDEO       0x1
+#define MATROSKA_TRACK_TYPE_AUDIO       0x2
+#define MATROSKA_TRACK_TYPE_COMPLEX     0x3
+#define MATROSKA_TRACK_TYPE_LOGO        0x10
+#define MATROSKA_TRACK_TYPE_SUBTITLE    0x11
+#define MATROSKA_TRACK_TYPE_CONTROL     0x20
+
+struct mk_Context 
+{
+    mk_Context *next, **prev, *parent;
+    unsigned id;
+    void *data;
+    unsigned d_cur, d_max;
+};
+
+
+class GVMatroska
+{
+    std::ofstream myfile;
+    /*-------header------*/
+    int video_only;            //not muxing audio   
+    unsigned duration_ptr;     //file location pointer for duration
+    INT64 segment_size_ptr;  //file location pointer for segment size
+    INT64 cues_pos;
+    INT64 seekhead_pos;  
+    mk_Context *root, *cluster, *frame;
+    mk_Context *freelist;
+    mk_Context *actlist;
+    bool wrote_header;
+    /*-------video-------*/
+    UINT64 def_duration;
+    unsigned def_duration_ptr;
+    INT64 timescale;
+    INT64 cluster_tc_scaled;
+    INT64 frame_tc, prev_frame_tc_scaled, max_frame_tc;
+    bool in_frame, keyframe;
+    /*-------audio-------*/
+    mk_Context *audio_frame;
+    INT64 audio_frame_tc, audio_prev_frame_tc_scaled; 
+    INT64 audio_block, block_n;
+    bool audio_in_frame;
+    /*--------cues-------*/
+    mk_Context *cues;
+    INT64 cue_time;
+    INT64 cue_video_track_pos;
+    INT64 cue_audio_track_pos;
+    /*-----seek head-----*/
+    unsigned cluster_index;
+    std::vector<INT64> cluster_pos;
+    
+    mk_Context *mk_createContext(mk_Context *parent, unsigned id);
+    int mk_appendContextData(mk_Context *c, const void *data, unsigned size);
+    int mk_writeID(mk_Context *c, unsigned id);
+    int mk_writeSize(mk_Context *c, unsigned size);
+    int mk_flushContextData(mk_Context *c);
+    int mk_closeContext(mk_Context *c, unsigned *off);
+    void mk_destroyContexts();
+    int mk_writeStr(mk_Context *c, unsigned id, const char *str);
+    int mk_writeBin(mk_Context *c, unsigned id, const void *data, unsigned size);
+    int mk_writeVoid(mk_Context *c, unsigned size);
+    int mk_writeUIntRaw(mk_Context *c, unsigned id, INT64 ui);
+    int mk_writeUInt(mk_Context *c, unsigned id, INT64 ui);
+    int mk_writeSegPos(mk_Context *c, INT64 ui);
+    int mk_writeFloatRaw(mk_Context *c, float f);
+    int mk_writeFloat(mk_Context *c, unsigned id, float f);
+    unsigned mk_ebmlSizeSize(unsigned s);
+    int mk_flushFrame();
+    int mk_flushAudioFrame();
+    int mk_closeCluster();
+    int write_cues();
+    int write_SeekHead();
+    int write_SegSeek(INT64 cues_pos, INT64 seekHeadPos);
+    
+  public:
+    GVMatroska(const char* filename, 
+               const char *writingApp,
+               const char *codecID,
+               const char *AcodecID,
+               const void *codecPrivate, unsigned codecPrivateSize,
+               UINT64 default_frame_duration,  /*video */
+               const void *AcodecPrivate, unsigned AcodecPrivateSize,
+               UINT64 default_aframe_duration, /*audio */
+               INT64 timescale,
+               unsigned width, unsigned height,
+               unsigned d_width, unsigned d_height,
+               float SampRate, int channels, int bitsSample);
+    ~GVMatroska();
+    bool failed();
+    void mk_setDef_Duration(UINT64 _def_duration);
+    int mk_startFrame();
+    int mk_startAudioFrame();
+    int mk_setFrameFlags(INT64 timestamp, int keyframe);
+    int mk_setAudioFrameFlags(INT64 timestamp, int keyframe);
+    int mk_addFrameData(const void *data, unsigned size);
+    int mk_addAudioFrameData(const void *data, unsigned size);
+    
+};
+
+#endif
+

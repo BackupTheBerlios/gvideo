@@ -7,7 +7,6 @@ h_sources = gvideo.h \
             GVid_color_convert.h \
             GVid_mjpg_dec.h \
             GVid_buff.h \
-            GVid_time.h \
             GVid_image.h
             
 cpp_sources = GVid_v4l2.cpp \
@@ -16,7 +15,6 @@ cpp_sources = GVid_v4l2.cpp \
               GVid_color_convert.cpp \
               GVid_mjpg_dec.cpp \
               GVid_buff.cpp \
-              GVid_time.cpp \
               GVid_image.cpp
 
 #Install the headers in a versioned directory - gvideo-x.x/libgvrender:

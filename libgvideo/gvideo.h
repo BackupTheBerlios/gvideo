@@ -36,7 +36,6 @@
 #include "libgvideo/GVid_mjpg_dec.h"
 #include "libgvideo/huffman.h"
 #include "libgvideo/GVid_options.h"
-#include "libgvideo/GVid_time.h"
 #include "libgvideo/GVid_v4l2.h"
 #include "libgvideo/GVid_v4l2_formats.h"
 
