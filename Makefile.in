@@ -38,6 +38,7 @@ subdir = .
 DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(srcdir)/config.h.in \
 	$(top_srcdir)/configure \
+	$(top_srcdir)/pkgconfig/gvaudio-0.1.pc.in \
 	$(top_srcdir)/pkgconfig/gvideo-0.1.pc.in \
 	$(top_srcdir)/pkgconfig/gvrender-0.1.pc.in AUTHORS COPYING \
 	ChangeLog INSTALL NEWS config.guess config.sub depcomp \
@@ -53,7 +54,8 @@ am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno config.status.lineno
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = config.h
-CONFIG_CLEAN_FILES = pkgconfig/gvideo-0.1.pc pkgconfig/gvrender-0.1.pc
+CONFIG_CLEAN_FILES = pkgconfig/gvideo-0.1.pc pkgconfig/gvrender-0.1.pc \
+	pkgconfig/gvaudio-0.1.pc
 CONFIG_CLEAN_VPATH_FILES =
 SOURCES =
 DIST_SOURCES =
@@ -301,6 +303,7 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 SUBDIRS = $(GVIDEO_LIBRARY_NAME) \
           $(GVRENDER_LIBRARY_NAME) \
+          $(GVAUDIO_LIBRARY_NAME) \
           $(GVIDEO_GTK_NAME) \
           common \
           po \
@@ -310,6 +313,7 @@ SUBDIRS = $(GVIDEO_LIBRARY_NAME) \
 #Distribute these directories:
 DIST_SUBDIRS = $(GVIDEO_LIBRARY_NAME) \
                $(GVRENDER_LIBRARY_NAME) \
+               $(GVAUDIO_LIBRARY_NAME) \
                $(GVIDEO_GTK_NAME) \
                common \
                po \
@@ -399,6 +403,8 @@ distclean-hdr:
 pkgconfig/gvideo-0.1.pc: $(top_builddir)/config.status $(top_srcdir)/pkgconfig/gvideo-0.1.pc.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 pkgconfig/gvrender-0.1.pc: $(top_builddir)/config.status $(top_srcdir)/pkgconfig/gvrender-0.1.pc.in
+	cd $(top_builddir) && $(SHELL) ./config.status $@
+pkgconfig/gvaudio-0.1.pc: $(top_builddir)/config.status $(top_srcdir)/pkgconfig/gvaudio-0.1.pc.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 
 mostlyclean-libtool:
