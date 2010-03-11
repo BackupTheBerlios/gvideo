@@ -33,6 +33,8 @@
 #include <vector>
 #include "gvcommon.h"
 
+START_LIBGVENCODER_NAMESPACE
+
 #define CLSIZE    1048576
 #define CHECK(x)  do { if ((x) < 0) return -1; } while (0)
 #define TEST(x)  do { if ((x) < 0) goto error; } while (0)
@@ -311,6 +313,8 @@ class GVMatroska
     int mk_addAudioFrameData(const void *data, unsigned size);
     
 };
+
+END_LIBGVENCODER_NAMESPACE
 
 #endif
 

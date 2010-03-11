@@ -29,7 +29,7 @@
 #include <iostream>
 #include "GVAudio.h"
 
-using namespace std;
+START_LIBGVAUDIO_NAMESPACE
 
 GVAudio::GVAudio(bool _verbose /*=false*/)
 {
@@ -44,6 +44,7 @@ GVAudio::GVAudio(bool _verbose /*=false*/)
     
     complete = false;
     streaming = false;
+    stream = NULL;
     sampleIndex = 0;
     
     time_stamp = 0;
@@ -56,7 +57,7 @@ GVAudio::GVAudio(bool _verbose /*=false*/)
     int numDevices = Pa_GetDeviceCount();
     if( numDevices < 0 )
     {
-        cerr << "SOUND DISABLE: Pa_CountDevices returned" << numDevices << endl;
+        std::cerr << "SOUND DISABLE: Pa_CountDevices returned" << numDevices << std::endl;
         enabled = false;
     } 
     else 
@@ -66,21 +67,21 @@ GVAudio::GVAudio(bool _verbose /*=false*/)
         for( it=0; it<numDevices; it++ )
         {
             deviceInfo = Pa_GetDeviceInfo( it );
-            if (verbose) cout << "--------------------------------------- device [" << it << "]\n";
+            if (verbose) std::cout << "--------------------------------------- device [" << it << "]\n";
             // Mark global and API specific default devices
             defaultDisplayed = 0;
 
             // with pulse, ALSA is now listed first and doesn't set a API default- 11-2009
             if( it == Pa_GetDefaultInputDevice() )
             {
-                if (verbose) cout << "[ Default Input ";
+                if (verbose) std::cout << "[ Default Input ";
                 defaultDisplayed = 1;
                 defDevice = it;
             }
             else if( it == Pa_GetHostApiInfo( deviceInfo->hostApi )->defaultInputDevice )
             {
                 const PaHostApiInfo *hostInfo = Pa_GetHostApiInfo( deviceInfo->hostApi );
-                if (verbose) cout << "[ Default " <<  hostInfo->name << " Input";
+                if (verbose) std::cout << "[ Default " <<  hostInfo->name << " Input";
                 defaultDisplayed = 2;
             }
             // OUTPUT device doesn't matter for capture
@@ -88,9 +89,9 @@ GVAudio::GVAudio(bool _verbose /*=false*/)
             {
                 if (verbose) 
                 {
-                    if (defaultDisplayed) cout << ",";
-                    else cout << "[";
-                    cout << " Default Output";
+                    if (defaultDisplayed) std::cout << ",";
+                    else std::cout << "[";
+                    std::cout << " Default Output";
                 }
                 defaultDisplayed = 3;
             }
@@ -99,23 +100,23 @@ GVAudio::GVAudio(bool _verbose /*=false*/)
                 const PaHostApiInfo *hostInfo = Pa_GetHostApiInfo( deviceInfo->hostApi );
                 if (verbose)
                 {
-                    if(defaultDisplayed) cout << ",";
-                    else cout << "[";
-                    cout << " Default " << hostInfo->name << " Output";/* OSS ALSA etc*/
+                    if(defaultDisplayed) std::cout << ",";
+                    else std::cout << "[";
+                    std::cout << " Default " << hostInfo->name << " Output";/* OSS ALSA etc*/
                 }
                 defaultDisplayed = 4;
             }
 
             if( defaultDisplayed != 0 )
-                if (verbose) cout << " ]\n";
+                if (verbose) std::cout << " ]\n";
 
             /* print device info fields */
             if (verbose) 
             {
-                cout << "Name                     = " << deviceInfo->name << endl;
-                cout << "Host API                 = " 
-                    << Pa_GetHostApiInfo( deviceInfo->hostApi )->name << endl;
-                cout << "Max inputs = " << deviceInfo->maxInputChannels;
+                std::cout << "Name                     = " << deviceInfo->name << std::endl;
+                std::cout << "Host API                 = " 
+                    << Pa_GetHostApiInfo( deviceInfo->hostApi )->name << std::endl;
+                std::cout << "Max inputs = " << deviceInfo->maxInputChannels;
             }
             
             // INPUT devices (if it has input channels it's a capture device)
@@ -123,7 +124,7 @@ GVAudio::GVAudio(bool _verbose /*=false*/)
             {
                 listAudioDev.push_back(
                     (audioDevice) { it, 
-                                    string(deviceInfo->name), 
+                                    std::string(deviceInfo->name), 
                                     deviceInfo->maxInputChannels, 
                                     deviceInfo->defaultSampleRate,
                                     deviceInfo->defaultHighInputLatency,
@@ -131,17 +132,17 @@ GVAudio::GVAudio(bool _verbose /*=false*/)
             }
             if (verbose) 
             {
-                cout << ", Max outputs = " << deviceInfo->maxOutputChannels << endl;
-                cout << "Def. low input latency   = " << deviceInfo->defaultLowInputLatency << endl;
-                cout << "Def. low output latency  = " << deviceInfo->defaultLowOutputLatency << endl;
-                cout << "Def. high input latency  = " << deviceInfo->defaultHighInputLatency << endl;
-                cout << "Def. high output latency = " << deviceInfo->defaultHighOutputLatency << endl;
-                cout << "Def. sample rate         = " << deviceInfo->defaultSampleRate << endl;
+                std::cout << ", Max outputs = " << deviceInfo->maxOutputChannels << std::endl;
+                std::cout << "Def. low input latency   = " << deviceInfo->defaultLowInputLatency << std::endl;
+                std::cout << "Def. low output latency  = " << deviceInfo->defaultLowOutputLatency << std::endl;
+                std::cout << "Def. high input latency  = " << deviceInfo->defaultHighInputLatency << std::endl;
+                std::cout << "Def. high output latency = " << deviceInfo->defaultHighOutputLatency << std::endl;
+                std::cout << "Def. sample rate         = " << deviceInfo->defaultSampleRate << std::endl;
             }
 
         }
 
-        if (verbose) cout << "----------------------------------------------\n";
+        if (verbose) std::cout << "----------------------------------------------\n";
     }
 
     recordedSamples = NULL;
@@ -152,11 +153,13 @@ GVAudio::GVAudio(bool _verbose /*=false*/)
 GVAudio::~GVAudio()
 {
     int err = 0;
+    if(verbose) std::cout << "stopping stream\n";
     stopStream();
+    /* Pa_Terminate seems to segfault when using pulseaudio (Ubuntu) */
     if ((err=Pa_Terminate()) != paNoError) 
-        cerr << "Error: Pa_Terminate return error " << err << endl;
-    
-    delete[] recordedSamples;
+        std::cerr << "Error: Pa_Terminate return error " << err << std::endl;
+    if(verbose) std::cout << "removing samples\n";
+    if (recordedSamples != NULL) delete[] recordedSamples;
 }
 
 int GVAudio::stopStream()
@@ -172,19 +175,19 @@ int GVAudio::stopStream()
     {
         if(Pa_IsStreamActive( stream ) > 0)
         {
-            cout << "Aborting audio stream\n";
+            std::cout << "Aborting audio stream\n";
             err = Pa_AbortStream( stream );
         }
         else
         {
-            cout << "Stoping audio stream\n";
+            std::cout << "Stoping audio stream\n";
             err = Pa_StopStream( stream );
         }
         if( err != paNoError )
         {
-            cerr << "An error occured while stoping the audio stream\n" ;
-            cerr << "Error number: " << err << endl;
-            cerr << "Error message: " << Pa_GetErrorText( err ) << endl;
+            std::cerr << "An error occured while stoping the audio stream\n" ;
+            std::cerr << "Error number: " << err << std::endl;
+            std::cerr << "Error message: " << Pa_GetErrorText( err ) << std::endl;
             ret = -1;
         }
     }
@@ -193,9 +196,9 @@ int GVAudio::stopStream()
         err = Pa_CloseStream( stream );
         if( err != paNoError )
         {
-            cerr << "An error occured while closing the audio stream\n" ;
-            cerr << "Error number: " << err << endl;
-            cerr << "Error message: " << Pa_GetErrorText( err ) << endl;
+            std::cerr << "An error occured while closing the audio stream\n" ;
+            std::cerr << "Error number: " << err << std::endl;
+            std::cerr << "Error message: " << Pa_GetErrorText( err ) << std::endl;
             ret = -1;
         }
     }
@@ -269,13 +272,13 @@ int GVAudio::startStream(int samp_rate/*=0*/, int chan/*=0*/, int frm_size/*=0*/
     err = Pa_StartStream( stream );
     if( err != paNoError ) 
     {
-        cerr << "Error opening audio stream, Pa_OpenStream returned error " << err << endl;
+        std::cerr << "Error opening audio stream, Pa_OpenStream returned error " << err << std::endl;
         streaming = false;
         if(stream) Pa_AbortStream( stream );
         
         return -1;
     }
-    GVTime *timer = new GVTime;
+    gvcommon::GVTime *timer = new gvcommon::GVTime;
     snd_begintime = timer->ns_time_monotonic();
     delete timer;
     return 0;
@@ -321,7 +324,7 @@ void GVAudio::fill_audio_buffer()
         if(audio_buff.size() > AUDBUFF_SIZE)
             audio_buff.push(*ab);
         else
-            cerr << "Dropping audio frame - buffer treshold reached\n";
+            std::cerr << "Dropping audio frame - buffer treshold reached\n";
         sampleIndex = 0; //reset
         pthread_mutex_unlock( &mutex );
     }
@@ -411,4 +414,6 @@ void GVAudio::free_buff(AudBuff *ab)
     delete[] ab->frame;
     delete ab;
 }
+
+END_LIBGVAUDIO_NAMESPACE
 

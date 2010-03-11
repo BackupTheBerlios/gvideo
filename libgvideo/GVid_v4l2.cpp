@@ -36,17 +36,17 @@
 #include "libgvideo/GVid_v4l2.h"
 #include "libgvideo/GVid_v4l2_formats.h"
 
-using namespace std;
+START_LIBGVIDEO_NAMESPACE
 
 /*constructors*/
-GVDevice::GVDevice(string device_name /*= "/dev/video0"*/, bool verbosity /*= false*/)
+GVDevice::GVDevice(std::string device_name /*= "/dev/video0"*/, bool verbosity /*= false*/)
 {
     verbose = verbosity;
     buff_index = 0;
     fps = new Fps_s;
     fps->num = 1;
     fps->denom = 25;
-    time = new GVTime;
+    time = new gvcommon::GVTime;
     
     if(device_name.size() > 0)
         dev_name.assign(device_name);
@@ -54,7 +54,7 @@ GVDevice::GVDevice(string device_name /*= "/dev/video0"*/, bool verbosity /*= fa
         dev_name="/dev/video0"; //empty string cases
 
     fd = v4l2_open(dev_name.c_str(), O_RDWR | O_NONBLOCK, 0);
-    if(fd < 0 ) cerr << "Couldn't open video device:" << dev_name << endl;
+    if(fd < 0 ) std::cerr << "Couldn't open video device:" << dev_name << std::endl;
     else
     {
         check_input();
@@ -104,8 +104,8 @@ int GVDevice::xioctl(int IOCTL_X, void *arg)
             ((errno == EINTR) || (errno == EAGAIN) || (errno == ETIMEDOUT)));
 
     if (ret && (tries <= 0)) 
-        cerr << "ioctl " << IOCTL_X 
-            << " retried " << 4 << " times - giving up: " << strerror(errno) << endl;
+        std::cerr << "ioctl " << IOCTL_X 
+            << " retried " << 4 << " times - giving up: " << strerror(errno) << std::endl;
     return (ret);
 }
 
@@ -119,13 +119,13 @@ bool GVDevice::isOpen()
  * format: v4l2 pix format
  *
  * returns format list index */
-int GVDevice::get_format_index(string fourcc)
+int GVDevice::get_format_index(std::string fourcc)
 {
-    GVString *strconv = new GVString;
+    gvcommon::GVString *strconv = new gvcommon::GVString;
     int i=0;
     for(i=0;i<listVidFormats.size();i++)
     {
-        //cout << listVidFormats[i].fourcc << " <-> " << fourcc << endl;
+        //std::cout << listVidFormats[i].fourcc << " <-> " << fourcc << std::endl;
         if(listVidFormats[i].fourcc.compare(strconv->ToUpper(fourcc)) == 0)
         {
             delete strconv;
@@ -133,7 +133,7 @@ int GVDevice::get_format_index(string fourcc)
         }
     }
     delete strconv;
-    cerr << "Warn: format " << fourcc << " not supported\n";
+    std::cerr << "Warn: format " << fourcc << " not supported\n";
     return (-1);
 }
 
@@ -146,8 +146,8 @@ int GVDevice::get_res_index(int format_index, int twidth, int theight)
             listVidFormats[format_index].listVidCap[i].height == theight)
             return (i);
     }
-    cerr << "Warn: resolution " << twidth << "x" << theight << " not supported for " 
-        << listVidFormats[format_index].fourcc << endl;
+    std::cerr << "Warn: resolution " << twidth << "x" << theight << " not supported for " 
+        << listVidFormats[format_index].fourcc << std::endl;
     return(-1);
 }
 void GVDevice::clean_buffers()
@@ -172,7 +172,7 @@ void GVDevice::clean_buffers()
                 rb.memory = V4L2_MEMORY_MMAP;
                 if(xioctl(VIDIOC_REQBUFS, &rb)<0)
                 {
-                    cerr << "VIDIOC_REQBUFS - Failed to delete buffers: " 
+                    std::cerr << "VIDIOC_REQBUFS - Failed to delete buffers: " 
                         << strerror(errno) << "(errno " << errno << ")\n";
                 }
                 break;
@@ -198,7 +198,7 @@ void GVDevice::freeFormats()
         listVidFormats[i].listVidCap.clear();
     }
     listVidFormats.clear();
-    if(verbose) cout << "cleaned Formats list\n";
+    if(verbose) std::cout << "cleaned Formats list\n";
 }
 
 /* clean controls list
@@ -214,7 +214,7 @@ void GVDevice::freeControls()
             listControls[i].entries.clear();
     }
     listControls.clear();
-    if(verbose) cout << "cleaned Controls list\n";
+    if(verbose) std::cout << "cleaned Controls list\n";
 }
 
 
@@ -237,7 +237,7 @@ int GVDevice::enum_frame_intervals( int pixfmt, __u32 fwidth, __u32 fheight, int
     fival.pixel_format = pixfmt;
     fival.width = fwidth;
     fival.height = fheight;
-    if(verbose) cout << "Time intervals between frames ";
+    if(verbose) std::cout << "Time intervals between frames ";
     
     while ((ret = xioctl(VIDIOC_ENUM_FRAMEINTERVALS, &fival)) == 0) 
     {
@@ -245,18 +245,18 @@ int GVDevice::enum_frame_intervals( int pixfmt, __u32 fwidth, __u32 fheight, int
         if (fival.type == V4L2_FRMIVAL_TYPE_DISCRETE) 
         {
             if (verbose && !list_fps)
-                cout << "(discrete): ";
+                std::cout << "(discrete): ";
             list_fps++;
             listVidFormats[fmtind-1].listVidCap[fsizeind-1].fps.resize(list_fps);
             if (verbose)
-                cout << fival.discrete.numerator << "/" << fival.discrete.denominator << " ";
+                std::cout << fival.discrete.numerator << "/" << fival.discrete.denominator << " ";
             listVidFormats[fmtind-1].listVidCap[fsizeind-1].fps[list_fps-1].num = fival.discrete.numerator;
             listVidFormats[fmtind-1].listVidCap[fsizeind-1].fps[list_fps-1].denom = fival.discrete.denominator;
         } 
         else if (fival.type == V4L2_FRMIVAL_TYPE_CONTINUOUS) 
         {
             if(verbose) 
-                cout << "(continuous): {min {" << fival.stepwise.min.numerator 
+                std::cout << "(continuous): {min {" << fival.stepwise.min.numerator 
                     << "/" << fival.stepwise.min.numerator << "} .. max {"
                     << fival.stepwise.max.denominator << "/" 
                     << fival.stepwise.max.denominator <<"} }, \n";
@@ -265,7 +265,7 @@ int GVDevice::enum_frame_intervals( int pixfmt, __u32 fwidth, __u32 fheight, int
         else if (fival.type == V4L2_FRMIVAL_TYPE_STEPWISE) 
         {
             if(verbose) 
-                cout << "(stepwise): {min {" << fival.stepwise.min.numerator << "/" 
+                std::cout << "(stepwise): {min {" << fival.stepwise.min.numerator << "/" 
                     << fival.stepwise.min.denominator << " } .. max {"
                     << fival.stepwise.max.numerator << "/" 
                     << fival.stepwise.max.denominator << "} / "
@@ -275,7 +275,7 @@ int GVDevice::enum_frame_intervals( int pixfmt, __u32 fwidth, __u32 fheight, int
         }
     }
     
-    if(verbose) cout << endl;
+    if(verbose) std::cout << std::endl;
     
     if (list_fps==0)
     {
@@ -287,7 +287,7 @@ int GVDevice::enum_frame_intervals( int pixfmt, __u32 fwidth, __u32 fheight, int
 
     if (ret != 0 && errno != EINVAL) 
     {
-        cerr << "VIDIOC_ENUM_FRAMEINTERVALS - Error enumerating frame intervals:" << strerror(errno) << endl;
+        std::cerr << "VIDIOC_ENUM_FRAMEINTERVALS - Error enumerating frame intervals:" << strerror(errno) << std::endl;
         return errno;
     }
     return 0;
@@ -326,7 +326,7 @@ int GVDevice::enum_frame_sizes( int pixfmt, int fmtind )
             
             if (verbose)
             {
-                cout << "    { discrete: width=" << fsize.discrete.width 
+                std::cout << "    { discrete: width=" << fsize.discrete.width 
                     << " height=" << fsize.discrete.height << " }\n";
             }
             
@@ -336,42 +336,42 @@ int GVDevice::enum_frame_sizes( int pixfmt, int fmtind )
                 fmtind, 
                 fsizeind);
 
-                if (ret != 0) cerr <<"  Unable to enumerate frame sizes\n";
+                if (ret != 0) std::cerr <<"  Unable to enumerate frame sizes\n";
         } 
         else if (fsize.type == V4L2_FRMSIZE_TYPE_CONTINUOUS) 
         {
             if (verbose)
             {
-                cout << "    { continuous: min { width = " << fsize.stepwise.min_width 
+                std::cout << "    { continuous: min { width = " << fsize.stepwise.min_width 
                     <<", height = " << fsize.stepwise.min_height 
                     << "} .. max { width = " << fsize.stepwise.max_width 
                     << ", height = " << fsize.stepwise.max_height << " } }\n";
-                cout << "  will not enumerate frame intervals.\n";
+                std::cout << "  will not enumerate frame intervals.\n";
             }
         } 
         else if (fsize.type == V4L2_FRMSIZE_TYPE_STEPWISE) 
         {
             if (verbose)
             {
-                cout << "    { stepwise: min { width = " << fsize.stepwise.min_width 
+                std::cout << "    { stepwise: min { width = " << fsize.stepwise.min_width 
                     << ", height = " << fsize.stepwise.min_height 
                     << " } .. max { width = " << fsize.stepwise.max_width 
                     << ", height = " << fsize.stepwise.max_height 
                     << " } / stepsize { width = " << fsize.stepwise.step_width 
                     << ", height = " << fsize.stepwise.step_height << " } }\n";
-                cout << "  will not enumerate frame intervals.\n";
+                std::cout << "  will not enumerate frame intervals.\n";
             }
         } 
         else 
         {
-            cerr << "  fsize.type not supported: " << fsize.type << "\n";
-            cerr << "     (Discrete: " << V4L2_FRMSIZE_TYPE_DISCRETE << "Continuous: " << V4L2_FRMSIZE_TYPE_CONTINUOUS 
+            std::cerr << "  fsize.type not supported: " << fsize.type << "\n";
+            std::cerr << "     (Discrete: " << V4L2_FRMSIZE_TYPE_DISCRETE << "Continuous: " << V4L2_FRMSIZE_TYPE_CONTINUOUS 
                 << "  Stepwise: " << V4L2_FRMSIZE_TYPE_STEPWISE << ")\n";
         }
     }
     if (ret != 0 && errno != EINVAL) 
     {
-        cerr << "VIDIOC_ENUM_FRAMESIZES - Error enumerating frame sizes:" << strerror(errno) << endl;
+        std::cerr << "VIDIOC_ENUM_FRAMESIZES - Error enumerating frame sizes:" << strerror(errno) << std::endl;
         return errno;
     } 
     else if ((ret != 0) && (fsizeind == 0)) 
@@ -392,8 +392,8 @@ int GVDevice::enum_frame_sizes( int pixfmt, int fmtind )
         height = fmt.fmt.pix.height;
         if (verbose)
         {
-            cout << "    { ?GSPCA? : width = " << width << ", height = " << height << " }\n";
-            cout << "    fmtind:" << fmtind << " fsizeind: " << fsizeind << "\n";
+            std::cout << "    { ?GSPCA? : width = " << width << ", height = " << height << " }\n";
+            std::cout << "    fmtind:" << fmtind << " fsizeind: " << fsizeind << "\n";
         }
         if(listVidFormats[fmtind-1].listVidCap.size() > 0) 
         {
@@ -402,7 +402,7 @@ int GVDevice::enum_frame_sizes( int pixfmt, int fmtind )
         } 
         else
         {
-            cerr << "assert failed: listVidCap not Null\n";
+            std::cerr << "assert failed: listVidCap not Null\n";
             return (-2);
         }
         listVidFormats[fmtind-1].listVidCap[0].width = width;
@@ -446,25 +446,25 @@ int GVDevice::enum_frame_formats()
             listVidFormats[fmtind-1].fourcc.push_back((fmt.pixelformat >> 16) & 0xFF);
             listVidFormats[fmtind-1].fourcc.push_back((fmt.pixelformat >> 24) & 0xFF);
             
-            listVidFormats[fmtind-1].description = string(( char* ) fmt.description);
+            listVidFormats[fmtind-1].description = std::string(( char* ) fmt.description);
             
             if(verbose)
             {
-                cout << "  { format='" << fmt.pixelformat 
+                std::cout << "  { format='" << fmt.pixelformat 
                     << "'  description='" << fmt.description << " }\n";
             }
             //enumerate frame sizes
             ret = enum_frame_sizes( fmt.pixelformat, fmtind );
             if (ret != 0)
-               cerr << "  Unable to enumerate frame sizes.:" << strerror(errno) << endl;
+               std::cerr << "  Unable to enumerate frame sizes.:" << strerror(errno) << std::endl;
         }
         else
         {
-            cerr << "   { not supported - request format " << fmt.pixelformat << " support at http://guvcview.berlios.de }\n";
+            std::cerr << "   { not supported - request format " << fmt.pixelformat << " support at http://guvcview.berlios.de }\n";
         }
     }
     if (errno != EINVAL) {
-        cerr << "VIDIOC_ENUM_FMT - Error enumerating frame formats:" << strerror(errno) << endl;
+        std::cerr << "VIDIOC_ENUM_FMT - Error enumerating frame formats:" << strerror(errno) << std::endl;
     }
 
     return (0);
@@ -485,18 +485,18 @@ int GVDevice::check_input()
 
     if ( (ret = xioctl(VIDIOC_QUERYCAP, &cap)) < 0 ) 
     {
-        cerr << "VIDIOC_QUERYCAP error" << ret << endl;
+        std::cerr << "VIDIOC_QUERYCAP error" << ret << std::endl;
         return -1;
     }
 
     if ( ( cap.capabilities & V4L2_CAP_VIDEO_CAPTURE ) == 0) 
     {
-        cerr << "Error opening device " << dev_name << ": video capture not supported" << endl;
+        std::cerr << "Error opening device " << dev_name << ": video capture not supported" << std::endl;
         return -1;
     }
     if (!(cap.capabilities & V4L2_CAP_STREAMING)) 
     {
-        cerr << dev_name << " does not support streaming i/o" << endl; 
+        std::cerr << dev_name << " does not support streaming i/o" << std::endl; 
         return -1;
     }
 
@@ -505,19 +505,19 @@ int GVDevice::check_input()
         mem[buff_index] = NULL;
         if (!(cap.capabilities & V4L2_CAP_READWRITE)) 
         {
-            cerr << dev_name << " does not support read i/o" << endl;
+            std::cerr << dev_name << " does not support read i/o" << std::endl;
             return -2;
         }
     }
     
     if (verbose)
-        cout << "Init. " << cap.card << " (location:" << cap.bus_info <<")" << endl;
+        std::cout << "Init. " << cap.card << " (location:" << cap.bus_info <<")" << std::endl;
 
     enum_frame_formats();
 
     if ( listVidFormats.size() <= 0)
-        cerr << "Couldn't detect any supported formats on your device" 
-            << listVidFormats.size() << endl;
+        std::cerr << "Couldn't detect any supported formats on your device" 
+            << listVidFormats.size() << std::endl;
 
     return 0;
 }
@@ -557,7 +557,7 @@ int GVDevice::add_control(int n, struct v4l2_queryctrl *queryctrl)
             //allocate entries list
             listControls[n-1].entries.resize(querymenu.index+1);
             //allocate entrie name
-            listControls[n-1].entries[querymenu.index] = string((char *) querymenu.name);
+            listControls[n-1].entries[querymenu.index] = std::string((char *) querymenu.name);
             querymenu.index++;
         }
         listControls[n-1].max = querymenu.index - 1;
@@ -577,7 +577,7 @@ int GVDevice::check_controls()
     if ((ret=xioctl (VIDIOC_QUERYCTRL, &queryctrl)) == 0)
     {
         if (verbose) 
-            cout << "V4L2_CTRL_FLAG_NEXT_CTRL supported\n";
+            std::cout << "V4L2_CTRL_FLAG_NEXT_CTRL supported\n";
         // The driver supports the V4L2_CTRL_FLAG_NEXT_CTRL flag
         queryctrl.id = 0;
         int currentctrl= queryctrl.id;
@@ -600,8 +600,8 @@ int GVDevice::check_controls()
                     queryctrl.id = currentctrl | V4L2_CTRL_FLAG_NEXT_CTRL;
                 }
                 if ( ret && ( tries <= 0)) 
-                    cerr << "Failed to query control id=" << currentctrl 
-                        << "tried 4 times - giving up:" << strerror(errno) << endl;
+                    std::cerr << "Failed to query control id=" << currentctrl 
+                        << "tried 4 times - giving up:" << strerror(errno) << std::endl;
             }
             // Prevent infinite loop for buggy NEXT_CTRL implementations
             if(ret && queryctrl.id <= currentctrl) 
@@ -626,7 +626,7 @@ next_control:
     else //NEXT_CTRL flag not supported, use old method 
     {
         if (verbose)
-            cout << "V4L2_CTRL_FLAG_NEXT_CTRL not supported\n";
+            std::cout << "V4L2_CTRL_FLAG_NEXT_CTRL not supported\n";
         int currentctrl;
         for(currentctrl = V4L2_CID_BASE; currentctrl < V4L2_CID_LASTP1; currentctrl++) 
         {
@@ -684,7 +684,7 @@ int GVDevice::get_control_val (int control_index, int * val)
     if (ret == 0) 
         *val = c.value;
     else 
-        cerr << "VIDIOC_G_CTRL - Unable to get control:" << strerror(errno) << endl;
+        std::cerr << "VIDIOC_G_CTRL - Unable to get control:" << strerror(errno) << std::endl;
 
     return ret;
 }
@@ -704,7 +704,7 @@ int GVDevice::set_control_val (int control_index, int val)
     c.value = val;
     ret = xioctl (VIDIOC_S_CTRL, &c);
     if (ret < 0) 
-        cerr << "VIDIOC_S_CTRL - Unable to get control:" << strerror(errno) << endl;
+        std::cerr << "VIDIOC_S_CTRL - Unable to get control:" << strerror(errno) << std::endl;
 
     return ret;
 }
@@ -723,7 +723,7 @@ int GVDevice::map_buff()
             buff_offset[i]);
         if (mem[i] == MAP_FAILED) 
         {
-            cerr << "Unable to map buffer:" << strerror(errno) << endl;
+            std::cerr << "Unable to map buffer:" << strerror(errno) << std::endl;
             return -1;
         }
     }
@@ -747,7 +747,7 @@ int GVDevice::unmap_buff()
                 if((mem[i] != MAP_FAILED) && buff_length[i])
                     if((ret=v4l2_munmap(mem[i], buff_length[i]))<0)
                     {
-                        cerr << "couldn't unmap buff:" << strerror(errno) << endl;
+                        std::cerr << "couldn't unmap buff:" << strerror(errno) << std::endl;
                     }
             }
     }
@@ -779,16 +779,16 @@ int GVDevice::query_buff()
                 ret = xioctl(VIDIOC_QUERYBUF, &buf);
                 if (ret < 0) 
                 {
-                    cerr << "VIDIOC_QUERYBUF - Unable to query buffer:" << strerror(errno) << endl;
+                    std::cerr << "VIDIOC_QUERYBUF - Unable to query buffer:" << strerror(errno) << std::endl;
                     if(errno == EINVAL)
                     {
-                        cerr << "trying with read method instead\n";
+                        std::cerr << "trying with read method instead\n";
                         method = IO_READ;
                     }
                     return -1;
                 }
                 if (buf.length <= 0) 
-                    cerr << "WARNING VIDIOC_QUERYBUF - buffer length is " << buf.length << endl;
+                    std::cerr << "WARNING VIDIOC_QUERYBUF - buffer length is " << buf.length << std::endl;
 
                 buff_length.push_back(buf.length);
                 buff_offset.push_back(buf.m.offset);
@@ -822,7 +822,7 @@ int GVDevice::queue_buff()
                 ret = xioctl(VIDIOC_QBUF, &buf);
                 if (ret < 0) 
                 {
-                    cerr << "VIDIOC_QBUF - Unable to queue buffer:" << strerror(errno) << endl;
+                    std::cerr << "VIDIOC_QBUF - Unable to queue buffer:" << strerror(errno) << std::endl;
                     return -1;
                 }
             }
@@ -831,7 +831,7 @@ int GVDevice::queue_buff()
     return 0;
 }
 
-int GVDevice::set_format(string fourcc, int twidth, int theight)
+int GVDevice::set_format(std::string fourcc, int twidth, int theight)
 {
     int ret = 0;
     if(stream_ready)
@@ -840,9 +840,9 @@ int GVDevice::set_format(string fourcc, int twidth, int theight)
     }
 
     int format_index = get_format_index(fourcc);
-    if (verbose) cout << "format index:" << format_index << endl;
+    if (verbose) std::cout << "format index:" << format_index << std::endl;
     int res_index = get_res_index(format_index, twidth, theight);
-    if (verbose) cout << "resolution index:" << res_index << endl;
+    if (verbose) std::cout << "resolution index:" << res_index << std::endl;
     
     struct v4l2_format fmt;
     struct v4l2_buffer buf;
@@ -862,7 +862,7 @@ int GVDevice::set_format(string fourcc, int twidth, int theight)
     ret = xioctl(VIDIOC_S_FMT, &fmt);
     if (ret < 0) 
     {
-        cerr << "VIDIOC_S_FORMAT - Unable to set format:" << strerror(errno) << endl;
+        std::cerr << "VIDIOC_S_FORMAT - Unable to set format:" << strerror(errno) << std::endl;
         return -1;
     }
 
@@ -871,8 +871,8 @@ int GVDevice::set_format(string fourcc, int twidth, int theight)
     if ((fmt.fmt.pix.width != width) ||
         (fmt.fmt.pix.height != height)) 
     {
-        cerr << "Requested Format unavailable: get width=" << fmt.fmt.pix.width
-            << " height=" << fmt.fmt.pix.height << endl;
+        std::cerr << "Requested Format unavailable: get width=" << fmt.fmt.pix.width
+            << " height=" << fmt.fmt.pix.height << std::endl;
 
         width = fmt.fmt.pix.width;
         height = fmt.fmt.pix.height;
@@ -897,7 +897,7 @@ int GVDevice::set_format(string fourcc, int twidth, int theight)
             ret = xioctl(VIDIOC_REQBUFS, &rb);
             if (ret < 0) 
             {
-                cerr << "VIDIOC_REQBUFS - Unable to allocate buffers:" << strerror(errno) << endl;
+                std::cerr << "VIDIOC_REQBUFS - Unable to allocate buffers:" << strerror(errno) << std::endl;
                 return -2;
             }
             // map the buffers 
@@ -910,7 +910,7 @@ int GVDevice::set_format(string fourcc, int twidth, int theight)
                 rb.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
                 rb.memory = V4L2_MEMORY_MMAP;
                 if(xioctl(VIDIOC_REQBUFS, &rb)<0)
-                    cerr << "VIDIOC_REQBUFS - Unable to delete buffers:" << strerror(errno) << endl;
+                    std::cerr << "VIDIOC_REQBUFS - Unable to delete buffers:" << strerror(errno) << std::endl;
                 return -3;
             }
             // Queue the buffers
@@ -923,7 +923,7 @@ int GVDevice::set_format(string fourcc, int twidth, int theight)
                 rb.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
                 rb.memory = V4L2_MEMORY_MMAP;
                 if(xioctl(VIDIOC_REQBUFS, &rb)<0)
-                    cerr << "VIDIOC_REQBUFS - Unable to delete buffers:" << strerror(errno) << endl;
+                    std::cerr << "VIDIOC_REQBUFS - Unable to delete buffers:" << strerror(errno) << std::endl;
                 return -3;
             }
     }
@@ -961,7 +961,7 @@ UINT64 GVDevice::get_timestamp()
 int GVDevice::stream_on()
 {
     if(streaming) 
-        cerr << "WARNING: stream seems to be already on\n";
+        std::cerr << "WARNING: stream seems to be already on\n";
     int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     int ret=0;
     switch(method)
@@ -975,7 +975,7 @@ int GVDevice::stream_on()
             ret = xioctl(VIDIOC_STREAMON, &type);
             if (ret < 0) 
             {
-                cerr << "VIDIOC_STREAMON - Unable to start stream:" << strerror(errno) << endl;
+                std::cerr << "VIDIOC_STREAMON - Unable to start stream:" << strerror(errno) << std::endl;
                 return -1;
             }
             break;
@@ -987,7 +987,7 @@ int GVDevice::stream_on()
 int GVDevice::stream_off()
 {
     if(!streaming) 
-        cerr << "WARNING: stream seems to be already off\n";
+        std::cerr << "WARNING: stream seems to be already off\n";
     int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     int ret=0;
     switch(method)
@@ -1001,7 +1001,7 @@ int GVDevice::stream_off()
             ret = xioctl(VIDIOC_STREAMOFF, &type);
             if (ret < 0) 
             {
-                cerr << "VIDIOC_STREAMOFF - Unable to stop stream:" << strerror(errno) << endl;
+                std::cerr << "VIDIOC_STREAMOFF - Unable to stop stream:" << strerror(errno) << std::endl;
                 if(errno == 9) streaming = false;/*capture as allready stoped*/
                 return -1;
             }
@@ -1035,12 +1035,12 @@ int GVDevice::grab_frame(UINT8* data)
     ret = select(fd + 1, &rdset, NULL, NULL, &timeout);
     if (ret < 0) 
     {
-        cerr << " Could not grab frame (select error)" << strerror(errno) << endl;
+        std::cerr << " Could not grab frame (select error)" << strerror(errno) << std::endl;
         return -2;
     } 
     else if (ret == 0)
     {
-        cerr << " Could not grab frame (select timeout)" << strerror(errno) << endl;
+        std::cerr << " Could not grab frame (select timeout)" << strerror(errno) << std::endl;
         return -3;
     }
     else if ((ret > 0) && (FD_ISSET(fd, &rdset))) 
@@ -1061,19 +1061,19 @@ int GVDevice::grab_frame(UINT8* data)
                     switch (errno) 
                     {
                         case EAGAIN:
-                            cerr << "No data available for read\n";
+                            std::cerr << "No data available for read\n";
                             return -3;
                             break;
                         case EINVAL:
-                            cerr << "Read method error, try mmap instead:" << strerror(errno) << endl;
+                            std::cerr << "Read method error, try mmap instead:" << strerror(errno) << std::endl;
                             return -4;
                             break;
                         case EIO:
-                            cerr << "read I/O Error:" << strerror(errno) << endl;
+                            std::cerr << "read I/O Error:" << strerror(errno) << std::endl;
                             return -4;
                             break;
                         default:
-                            cerr << "read:" << strerror(errno) << endl;
+                            std::cerr << "read:" << strerror(errno) << std::endl;
                             return -4;
                             break;
                     }
@@ -1104,7 +1104,7 @@ int GVDevice::grab_frame(UINT8* data)
                     ret = xioctl(VIDIOC_DQBUF, &buf);
                     if (ret < 0) 
                     {
-                        cerr << "VIDIOC_DQBUF - Unable to dequeue buffer:" << strerror(errno) << endl;
+                        std::cerr << "VIDIOC_DQBUF - Unable to dequeue buffer:" << strerror(errno) << std::endl;
                         ret = -5;
                         return ret;
                     }
@@ -1118,7 +1118,7 @@ int GVDevice::grab_frame(UINT8* data)
                     ret = xioctl(VIDIOC_QBUF, &buf);
                     if (ret < 0) 
                     {
-                        cerr << "VIDIOC_QBUF - Unable to queue buffer:" << strerror(errno) << endl;
+                        std::cerr << "VIDIOC_QBUF - Unable to queue buffer:" << strerror(errno) << std::endl;
                         ret = -6;
                         return ret;
                     }
@@ -1151,8 +1151,8 @@ int GVDevice::set_framerate ()
     ret = xioctl(VIDIOC_S_PARM, &streamparm);
     if (ret < 0) 
     {
-        cerr << "Unable to set framerate to " << fps->num << "/" << fps->denom << endl;
-        cerr << "VIDIOC_S_PARM error:" << strerror(errno) << endl;
+        std::cerr << "Unable to set framerate to " << fps->num << "/" << fps->denom << std::endl;
+        std::cerr << "VIDIOC_S_PARM error:" << strerror(errno) << std::endl;
     } 
 
     /*make sure we now have the correct fps*/
@@ -1175,7 +1175,7 @@ Fps_s* GVDevice::get_framerate ()
     ret = xioctl(VIDIOC_G_PARM, &streamparm);
     if (ret < 0) 
     {
-        cerr << "VIDIOC_G_PARM - Unable to get timeperframe:" << strerror(errno) << endl;
+        std::cerr << "VIDIOC_G_PARM - Unable to get timeperframe:" << strerror(errno) << std::endl;
     } 
     else 
     {
@@ -1189,3 +1189,5 @@ size_t GVDevice::get_bytesused ()
 {
     return buff_bytesused[buff_index];
 }
+
+END_LIBGVIDEO_NAMESPACE

@@ -28,9 +28,9 @@
 #include <iostream>
 #include <string.h>
 #include "libgvideo/GVid_mjpg_dec.h"
-#include "libgvideo/huffman.h"
+#include "gvhuffman.h"
 
-using namespace std;
+START_LIBGVIDEO_NAMESPACE
 
 //constructor
 GVMjpgDec::GVMjpgDec()
@@ -280,7 +280,7 @@ int GVMjpgDec::decode(UINT8 **frame_data, UINT8 *raw_data, int width, int height
     info.ns = getbyte(); /* number of scans */
     if (!info.ns)
     {
-        cerr << "info ns" << info.ns << endl;
+        std::cerr << "info ns" << info.ns << std::endl;
         err = ERR_NOT_YCBCR_221111;
         goto error;
     }
@@ -316,7 +316,7 @@ int GVMjpgDec::decode(UINT8 **frame_data, UINT8 *raw_data, int width, int height
 
     if (i != 0 || j != 63 || m != 0) 
     {
-        cerr << "hmm FW error,not seq DCT ??\n";
+        std::cerr << "hmm FW error,not seq DCT ??\n";
     }
 
     /*build huffman tables*/
@@ -331,7 +331,7 @@ int GVMjpgDec::decode(UINT8 **frame_data, UINT8 *raw_data, int width, int height
     need 1 macroblock line more ?? */
     if (intwidth != width || intheight != height || *frame_data == NULL) 
     {
-        cerr << "WARNING: jpg frame not " << width << "x" << height 
+        std::cerr << "WARNING: jpg frame not " << width << "x" << height 
             << " it has " << intwidth << "x" << intheight << " - resizing\n";
         width = intwidth;
         height = intheight;
@@ -486,7 +486,7 @@ error:
 int GVMjpgDec::huffman_init()
 {
     int tc, th, tt;
-    unsigned char *ptr= (unsigned char *) JPEGHuffmanTable ;
+    unsigned char *ptr= (unsigned char *) gvcommon::JPEGHuffmanTable ;
     int i, j, l;
     l = JPG_HUFFMAN_TABLE_LENGTH ;
     while (l > 0) 
@@ -922,3 +922,5 @@ void GVMjpgDec::idctqtab(UINT8 *qin, int *qout)
             qout[zig[i * 8 + j]] = qin[zig[i * 8 + j]] *
                 IMULT(aaidct[i], aaidct[j]);
 }
+
+END_LIBGVIDEO_NAMESPACE

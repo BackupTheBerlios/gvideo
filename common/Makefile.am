@@ -1,9 +1,9 @@
 ## Process this file with automake to produce Makefile.in
 
-h_sources = gvcommon.h
+h_sources = gvcommon.h gvhuffman.h
 cpp_sources =
 
-#Install the headers in a versioned directory - gvideo-0.1/librender:
+#Install the headers in a versioned directory - gvideo-0.1/:
 library_includedir=$(includedir)/$(PACKAGE)-$(PACKAGE_RELEASE)
 library_include_HEADERS = $(h_sources)
 

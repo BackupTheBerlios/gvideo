@@ -48,6 +48,19 @@ typedef uint32_t   UINT32;
 typedef int64_t    INT64;
 typedef uint64_t   UINT64;
 
+//namespaces macros
+#define START_GVCOMMON_NAMESPACE namespace gvcommon {
+#define END_GVCOMMON_NAMESPACE };
+#define START_LIBGVIDEO_NAMESPACE namespace libgvideo {
+#define END_LIBGVIDEO_NAMESPACE };
+#define START_LIBGVAUDIO_NAMESPACE namespace libgvaudio {
+#define END_LIBGVAUDIO_NAMESPACE };
+#define START_LIBGVENCODER_NAMESPACE namespace libgvencoder {
+#define END_LIBGVENCODER_NAMESPACE };
+#define START_LIBGVRENDER_NAMESPACE namespace libgvrender {
+#define END_LIBGVRENDER_NAMESPACE };
+
+
 /*clip value between 0 and 255*/
 #define CLIP(value) (UINT8)(((value)>0xFF)?0xff:(((value)<0)?0:(value)))
 
@@ -81,6 +94,8 @@ typedef uint64_t   UINT64;
 #ifndef GV_MSEC_PER_SEC
 #define GV_MSEC_PER_SEC 1000
 #endif
+
+START_GVCOMMON_NAMESPACE
 
 //convert from string template
 // args:
@@ -122,6 +137,47 @@ class GVString
         }
         return strToConvert;//return the converted string
     };
+    
+    // get filename from a full pathname
+    std::string get_Filename (const std::string& str)
+    {
+        size_t found;
+        found=str.find_last_of("/\\");
+        //cout << " folder: " << str.substr(0,found) << endl;
+        //cout << " file: " << str.substr(found+1) << endl;
+        return str.substr(found+1);
+    };
+    
+    //get only the folder path from a full pathname
+    std::string get_Path (const std::string& str)
+    {
+        size_t found;
+        found=str.find_last_of("/\\");
+        //cout << " folder: " << str.substr(0,found) << endl;
+        //cout << " file: " << str.substr(found+1) << endl;
+        return str.substr(0, found);
+    };
+    
+    //get the basename from filename (basename.ext)
+    std::string get_Basename (const std::string& str)
+    {
+        size_t found;
+        found=str.find_last_of(".");
+        //cout << " folder: " << str.substr(0,found) << endl;
+        //cout << " file: " << str.substr(found+1) << endl;
+        return str.substr(0, found);
+    };
+    
+    //get the extension (ext) from filename (basename.ext)
+    std::string get_Extension (const std::string& str)
+    {
+        size_t found;
+        found=str.find_last_of(".");
+        //cout << " folder: " << str.substr(0,found) << endl;
+        //cout << " file: " << str.substr(found+1) << endl;
+        return str.substr(found+1);
+    };
+
 
 };
 
@@ -169,6 +225,11 @@ class GVSleep
 
 class GVRand
 {
+    UINT8 generate_byte()
+    {
+       return ((UINT8) (rand() % 256));
+    }
+
   public:
     GVRand(unsigned int seed=0)
     {
@@ -177,7 +238,7 @@ class GVRand
         else
             srand(time(NULL) + getpid());
     }
-    int generate(int min=0, int max=RAND_MAX)
+    int generate_range(int min=0, int max=RAND_MAX)
     {
         if (max > RAND_MAX)
             max = RAND_MAX;
@@ -188,6 +249,13 @@ class GVRand
         if (min > max)
             min = max - 1;
         return( rand() % (max-min+1) + min);
+    }
+    
+    void generate_bytes(UINT8 *dest, int num_bytes)
+    {
+        int i = 0;
+        for (i=0; i< num_bytes; i++)
+            dest[i] = generate_byte();
     }
 };
 
@@ -200,33 +268,35 @@ class GVTime
     /*in nanoseconds*/
     UINT64 ns_time ()
     {
-	    clock_gettime(CLOCK_REALTIME, &ts);
-	    return ((UINT64) ts.tv_sec * GV_NSEC_PER_SEC + (UINT64) ts.tv_nsec);
+        clock_gettime(CLOCK_REALTIME, &ts);
+        return ((UINT64) ts.tv_sec * GV_NSEC_PER_SEC + (UINT64) ts.tv_nsec);
     }
 
     /*MONOTONIC CLOCK*/
     /*in nanosec*/
     UINT64 ns_time_monotonic()
     {
-	    clock_gettime(CLOCK_MONOTONIC, &ts);
-	    return ((UINT64) ts.tv_sec * GV_NSEC_PER_SEC + (UINT64) ts.tv_nsec);
+        clock_gettime(CLOCK_MONOTONIC, &ts);
+        return ((UINT64) ts.tv_sec * GV_NSEC_PER_SEC + (UINT64) ts.tv_nsec);
     }
 
     /*REAL TIME CLOCK*/
     /*in miliseconds*/
     UINT64 ms_time ()
     {
-	    clock_gettime(CLOCK_REALTIME, &ts);
-	    return ((UINT64) ts.tv_sec * GV_MSEC_PER_SEC + (UINT64) (ts.tv_nsec / GV_USEC_PER_SEC));
+        clock_gettime(CLOCK_REALTIME, &ts);
+        return ((UINT64) ts.tv_sec * GV_MSEC_PER_SEC + (UINT64) (ts.tv_nsec / GV_USEC_PER_SEC));
     }
 
     /*MONOTONIC CLOCK*/
     /*in miliseconds*/
     UINT64 ms_time_monotonic()
     {
-    	clock_gettime(CLOCK_MONOTONIC, &ts);
-    	return ((UINT64) ts.tv_sec * GV_MSEC_PER_SEC + (UINT64) (ts.tv_nsec / GV_USEC_PER_SEC));
+        clock_gettime(CLOCK_MONOTONIC, &ts);
+        return ((UINT64) ts.tv_sec * GV_MSEC_PER_SEC + (UINT64) (ts.tv_nsec / GV_USEC_PER_SEC));
     }
 };
+
+END_GVCOMMON_NAMESPACE
 
 #endif

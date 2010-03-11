@@ -29,12 +29,11 @@
 #define GVIDEO_H
 
 //inlude all library headers
-#include "gvcommon.h"
+#include "gvhuffman.h"
 #include "libgvideo/GVid_buff.h"
 #include "libgvideo/GVid_color_convert.h"
 #include "libgvideo/GVid_image.h"
 #include "libgvideo/GVid_mjpg_dec.h"
-#include "libgvideo/huffman.h"
 #include "libgvideo/GVid_options.h"
 #include "libgvideo/GVid_v4l2.h"
 #include "libgvideo/GVid_v4l2_formats.h"

@@ -59,6 +59,8 @@
 #define AUDBUFF_SIZE 100   //max number of audio buffers in the queue
 #define MPG_NUM_SAMP 1152  //number of samples in a audio buffer (MPEG frame) 
 
+START_LIBGVAUDIO_NAMESPACE
+
 struct audioDevice
 {
     int id;
@@ -78,7 +80,7 @@ struct AudBuff
 class GVAudio
 {
     bool verbose;
-    static pthread_mutex_t mutex;
+    pthread_mutex_t mutex;
     int api; //0-Portaudio 1-pulse audio
     bool enabled;
     int defDevice; //index of default audio device
@@ -146,5 +148,6 @@ class GVAudio
     void free_buff(AudBuff *ab);
 };
 
+END_LIBGVAUDIO_NAMESPACE
 
 #endif

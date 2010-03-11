@@ -31,9 +31,9 @@
 #include <errno.h>
 #include <libgvideo/GVid_options.h>
 
-using namespace std;
+START_LIBGVIDEO_NAMESPACE
 
-GVOptions::GVOptions(vector<GV_options> _options)
+GVOptions::GVOptions(std::vector<GV_options> _options)
 {
     //opts = new opt_data;
     verbose = true;
@@ -52,7 +52,7 @@ GVOptions::GVOptions(vector<GV_options> _options)
     // add user options
     for (i = 0; i < _options.size(); i++)
     {
-        string tmpstr;
+        std::string tmpstr;
         // short options
         short_options.push_back(_options[i].short_opt);
         // long options
@@ -101,11 +101,11 @@ GVOptions::~GVOptions()
 void GVOptions::onHelp()
 {
     int i = 0;
-    cout << "USAGE: \n";
-    cout << app_name << " options\n";
-    cout << "OPTIONS:\n";
+    std::cout << "USAGE: \n";
+    std::cout << app_name << " options\n";
+    std::cout << "OPTIONS:\n";
     for (i = 0; i < help_msg.size(); i++)
-        cout << help_msg[i] << endl;
+        std::cout << help_msg[i] << std::endl;
         
     help_called = true;
 }
@@ -123,7 +123,7 @@ int GVOptions::onOption(int option, char* optarg)
 int GVOptions::parse(int argc, char *argv[])
 {
     int next_option = 0;
-    app_name = string(argv[0]);
+    app_name = std::string(argv[0]);
     
     do 
     {
@@ -150,9 +150,12 @@ int GVOptions::parse(int argc, char *argv[])
     {
         int i;
         for (i = optind; i < argc; ++i) 
-            cout << "Argument: " << argv[i] << endl;
+            std::cout << "Argument: " << argv[i] << std::endl;
     }
     
     return(0);
     
 }
+
+END_LIBGVIDEO_NAMESPACE
+

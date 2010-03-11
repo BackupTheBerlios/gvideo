@@ -33,6 +33,9 @@
 #include <string>
 #include <iostream>
 #include <vector>
+#include "gvcommon.h"
+
+START_LIBGVIDEO_NAMESPACE
 
 struct GV_options
 {
@@ -62,5 +65,7 @@ class GVOptions
     bool isHelp();
 
 };
+
+END_LIBGVIDEO_NAMESPACE
 
 #endif

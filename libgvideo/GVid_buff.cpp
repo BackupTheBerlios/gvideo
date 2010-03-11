@@ -31,7 +31,7 @@
 #include "libgvideo/GVid_buff.h"
 
 
-using namespace std;
+START_LIBGVIDEO_NAMESPACE
 
 //constructor
 GVBuffer::GVBuffer(int b_format, int b_width, int b_height)
@@ -135,7 +135,7 @@ int GVBuffer::alloc_frame_buff()
             break;
 
         default:
-            cerr << "(alloc_frame_buff) should never arrive (1)- exit fatal !!\n";
+            std::cerr << "(alloc_frame_buff) should never arrive (1)- exit fatal !!\n";
             ret = -1;
             goto error;
             break;
@@ -143,7 +143,7 @@ int GVBuffer::alloc_frame_buff()
 
     if ((!frame_data) || (framebuf_size <=0)) 
     {
-        cerr << "couldn't allocate "<< framebuf_size 
+        std::cerr << "couldn't allocate "<< framebuf_size 
             << "bytes of memory for frame buffer\n";
         ret = -3;
         goto error;
@@ -183,13 +183,13 @@ int GVBuffer::frame_decode(size_t size, int pix_order)
             if(size <= HEADERFRAME1) 
             {
                 // Prevent crash on empty image
-                cerr << "Ignoring empty buffer ...\n";
+                std::cerr << "Ignoring empty buffer ...\n";
                 return (ret);
             }
 
             if (jpgdec->decode(&frame_data, raw_data, width, height) < 0) 
             {
-                cerr << "jpeg decode errors\n";
+                std::cerr << "jpeg decode errors\n";
                 ret = -1;
                 goto err;
             }
@@ -300,7 +300,7 @@ int GVBuffer::frame_decode(size_t size, int pix_order)
 			break;
 		
 		default:
-			cerr << "error grabbing (v4l2uvc.c) unknown format:" << format << endl;
+			std::cerr << "error grabbing (v4l2uvc.c) unknown format:" << format << std::endl;
 			ret = -1;
 			goto err;
 			break;
@@ -309,3 +309,5 @@ int GVBuffer::frame_decode(size_t size, int pix_order)
 err:
 	return ret;
 };
+
+END_LIBGVIDEO_NAMESPACE

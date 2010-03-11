@@ -29,25 +29,27 @@
 #include <string.h>
 #include "libgvideo/gvideo.h"
 #include "libgvrender/render.h"
+#include "libgvaudio/GVAudio.h"
+#include "libgvencoder/GVJpeg_encoder.h"
 
 
 using namespace std;
 
-class GVOpt : public GVOptions
+class GVOpt : public libgvideo::GVOptions
 {
     struct data
     {
         int sc, val, width, height;
         int gc;
         int fps;
-        bool list, verbose, lcontrols, render;
+        bool list, verbose, lcontrols, render, laudio;
         string devicename;
         string fourcc;
         string picture; 
     };
     
   public:
-    GVOpt( vector<GV_options> _options ) :
+    GVOpt( vector<libgvideo::GV_options> _options ) :
         GVOptions( _options )
         {
             opts = new data;
@@ -61,7 +63,8 @@ class GVOpt : public GVOptions
             opts->list = false;
             opts->verbose = false;
             opts->lcontrols = false;
-            opts->render = false;  
+            opts->render = false;
+            opts->laudio = false;  
         };
     ~GVOpt()
     {
@@ -77,8 +80,10 @@ class GVOpt : public GVOptions
                 opts->devicename = string(optarg);
                 break;
             case 'l':   /* -l or --list */
-                /* This option takes an argument, the name of the output file.  */
                 opts->list = true;
+                break;
+             case 'a':   /* -a or --laudio */
+                opts->laudio = true;
                 break;
             case 'c':   /* -c or --controls */
                 opts->lcontrols = true;
@@ -98,7 +103,7 @@ class GVOpt : public GVOptions
             case 'i': /* -i or --fps */
             {
                 string frt = string(optarg);
-                if (!from_string<int>(opts->fps, frt, dec))
+                if (!gvcommon::from_string<int>(opts->fps, frt, dec))
                 {
                     cerr << "couldn't convert width " << frt << " to int value\n";
                     opts->fps = 0;
@@ -111,12 +116,12 @@ class GVOpt : public GVOptions
                 int token_pos = res.find("x");
                 string wid = res.substr(0, token_pos);
                 string hei = res.substr(token_pos+1, res.size());
-                if (!from_string<int>(opts->width, wid, dec))
+                if (!gvcommon::from_string<int>(opts->width, wid, dec))
                 {
                     cerr << "couldn't convert width " << wid << " to int value\n";
                     opts->width = 0;
                 }
-                if (!from_string<int>(opts->height, hei, dec))
+                if (!gvcommon::from_string<int>(opts->height, hei, dec))
                 {
                     cerr << "couldn't convert height " << hei << " to int value\n";
                     opts->height = 0;
@@ -130,12 +135,12 @@ class GVOpt : public GVOptions
                 int token_pos = par.find("=");
                 string ind = par.substr(0, token_pos);
                 string cval = par.substr(token_pos+1, par.size()); 
-                if (!from_string<int>(opts->sc, ind, dec))
+                if (!gvcommon::from_string<int>(opts->sc, ind, dec))
                 {
                     cerr << "couldn't convert index " << ind << " to int value\n";
                     opts->sc = -1;
                 }
-                if (!from_string<int>(opts->val, cval, dec))
+                if (!gvcommon::from_string<int>(opts->val, cval, dec))
                 {
                     cerr << "couldn't convert val " << cval << " to int value\n";
                     opts->val = 0;
@@ -144,7 +149,7 @@ class GVOpt : public GVOptions
                 break;
             case 'g':   /* -g or --get */
                 
-                if (!from_string<int>(opts->gc, string(optarg), dec))
+                if (!gvcommon::from_string<int>(opts->gc, string(optarg), dec))
                 {
                     cerr << "couldn't convert index " << optarg << " to int value\n";
                     opts->gc = -1;
@@ -174,21 +179,23 @@ int main (int argc, char *argv[])
     UINT64 timestamp = 0;
     string fourcc;
     int width, height;
-    Fps_s *fps;
+    libgvideo::Fps_s *fps;
+    gvcommon::GVString* gvstr = new gvcommon::GVString;
     //parse command line options
-    vector<GV_options> opts;
+    vector<libgvideo::GV_options> opts;
     
-    opts.push_back((GV_options){"device",'d', true, "DEVICENAME", "sets device to DEVICENAME"});
-    opts.push_back((GV_options){"format",'f', true, "FOURCC", "sets video format to FOURCC if supported"});
-    opts.push_back((GV_options){"resolution",'r', true, "WIDTHxHEIGHT", "sets video resolution"});
-    opts.push_back((GV_options){"fps",'i', true, "FPS", "sets frame interval"});
-    opts.push_back((GV_options){"list",'l', false, "", "lists supported video formats and controls"});
-    opts.push_back((GV_options){"controls",'c', false, "", "lists device controls"});
-    opts.push_back((GV_options){"set",'s', true, "INDEX=VAL", "sets control with list INDEX to VAL"});
-    opts.push_back((GV_options){"get",'g', true, "INDEX", "gets value from control with list INDEX"});
-    opts.push_back((GV_options){"picture",'p', true, "FILENAME", "grab and save frame picure"});
-    opts.push_back((GV_options){"render",'j', false, "", "grab and render frames"});
-    opts.push_back((GV_options){"verbose",'v', false, "", "prints a lot of debug messages"});
+    opts.push_back((libgvideo::GV_options){"device",'d', true, "DEVICENAME", "sets device to DEVICENAME"});
+    opts.push_back((libgvideo::GV_options){"format",'f', true, "FOURCC", "sets video format to FOURCC if supported"});
+    opts.push_back((libgvideo::GV_options){"resolution",'r', true, "WIDTHxHEIGHT", "sets video resolution"});
+    opts.push_back((libgvideo::GV_options){"fps",'i', true, "FPS", "sets frame interval"});
+    opts.push_back((libgvideo::GV_options){"list",'l', false, "", "lists supported video formats and controls"});
+    opts.push_back((libgvideo::GV_options){"controls",'c', false, "", "lists device controls"});
+    opts.push_back((libgvideo::GV_options){"set",'s', true, "INDEX=VAL", "sets control with list INDEX to VAL"});
+    opts.push_back((libgvideo::GV_options){"get",'g', true, "INDEX", "gets value from control with list INDEX"});
+    opts.push_back((libgvideo::GV_options){"picture",'p', true, "FILENAME", "grab and save frame picure"});
+    opts.push_back((libgvideo::GV_options){"render",'j', false, "", "grab and render frames"});
+    opts.push_back((libgvideo::GV_options){"laudio",'a', false, "", "lists input audio devices"});
+    opts.push_back((libgvideo::GV_options){"verbose",'v', false, "", "prints a lot of debug messages"});
     
     GVOpt *options = new GVOpt(opts);
     options->parse(argc, argv);
@@ -199,9 +206,11 @@ int main (int argc, char *argv[])
     }
     
     //get device
-    GVDevice *dev = new GVDevice(options->opts->devicename, options->opts->verbose);
-    GVBuffer *buf = NULL;
+    libgvideo::GVDevice *dev = new libgvideo::GVDevice(options->opts->devicename, options->opts->verbose);
+    libgvideo::GVBuffer *buf = NULL;
 
+    libgvaudio::GVAudio *audio = NULL;
+    bool verbose = options->opts->verbose;
     //list formats
     if(options->opts->list)
     {
@@ -245,6 +254,23 @@ int main (int argc, char *argv[])
         goto finish;
     }
     
+     //list audio devices
+    if(options->opts->laudio)
+    {
+        audio = new libgvaudio::GVAudio(verbose);
+        cout << audio->listAudioDev.size() << " input audio devices detected:\n";
+        
+        for(i=0; i< audio->listAudioDev.size(); i++)
+        {
+            cout << "device -" << i << " (id[" << audio->listAudioDev[i].id << "]) :\n";
+            cout << "      name    : " << audio->listAudioDev[i].name << endl;
+            cout << "      channels: " << audio->listAudioDev[i].channels << endl;
+            cout << "      samprate: " << audio->listAudioDev[i].samprate << endl;
+            cout << "      Llatency: " << audio->listAudioDev[i].low_input_latency << endl;
+            cout << "      Hlatency: " << audio->listAudioDev[i].high_input_latency << endl;   
+        }   
+    }
+    
     //set control
     if(options->opts->sc >= 0)
     {
@@ -271,7 +297,7 @@ int main (int argc, char *argv[])
         if (fi < 0) fi = 0;
         width = dev->listVidFormats[fi].listVidCap[0].width; // force a valid default
     }
-    if(options->opts->verbose) cout << "using width=" << width << endl;
+    if(verbose) cout << "using width=" << width << endl;
     
     if(options->opts->height > 0)
         height = options->opts->height;
@@ -281,7 +307,7 @@ int main (int argc, char *argv[])
         if (fi < 0) fi = 0;
         height = dev->listVidFormats[fi].listVidCap[0].height; // force a valid default
     }
-    if (options->opts->verbose) cout << "using height=" << height << endl;
+    if (verbose) cout << "using height=" << height << endl;
     
     if(options->opts->fps > 0) 
     { 
@@ -297,35 +323,64 @@ int main (int argc, char *argv[])
         int format = dev->get_format();
         width = dev->get_width();
         height = dev->get_height();
-        if(options->opts->verbose) cout << "format is " << format << " " << width << "x" << height << endl;
-        buf = new GVBuffer(format, width, height);
+        if(verbose) cout << "format is " << format << " " << width << "x" << height << endl;
+        buf = new libgvideo::GVBuffer(format, width, height);
         dev->stream_on();
-        dev->grab_frame(buf->raw_data);
+        int ntries = 0;
+        while((dev->grab_frame(buf->raw_data) < 0) && ntries < 10)
+        {
+            ntries++;
+        }
         buf->frame_decode(dev->get_bytesused());
-        GVImage *img = new GVImage;
-        GVConvert *conv = new GVConvert;
-        UINT8 *rgb_buff = new UINT8 [width*height*3];
-        conv->yuyv2bgr (buf->frame_data, rgb_buff, width, height);
-        img->save_BPM(options->opts->picture.c_str(), width, height, 24, rgb_buff); 
+        
+        string filename = gvstr->get_Filename(options->opts->picture);
+        string ext = gvstr->get_Extension(filename);
+        ext = gvstr->ToLower(ext);
+        
+        libgvideo::GVImage *img = new libgvideo::GVImage;
+
+        if(ext.compare("bmp") == 0)
+        {
+            libgvideo::GVConvert *conv = new libgvideo::GVConvert;
+            UINT8 *rgb_buff = new UINT8 [width*height*3];
+            conv->yuyv2bgr (buf->frame_data, rgb_buff, width, height);
+            img->save_BPM(options->opts->picture.c_str(), width, height, rgb_buff);
+            delete conv;
+            delete[] rgb_buff;
+        }
+        else if (ext.compare("jpg") == 0)
+        {
+            UINT32 size = width*height/2;
+            UINT8* jpg_buff = new UINT8 [size];
+            libgvencoder::GVJpeg* jpeg = new libgvencoder::GVJpeg(width, height);
+            size = jpeg->encode (buf->frame_data, jpg_buff, true);
+            img->save_buffer(options->opts->picture.c_str(), jpg_buff, size);
+            delete[] jpg_buff;
+            delete jpeg;
+        }
+        else
+        {
+            cerr << "Image " << filename << ", type:" << ext << " not supported (jpg, bmp only)\n";
+        }
         
         delete img;
-        delete conv;
-        delete[] rgb_buff;
     }
     
     if(options->opts->render)
     {
         bool quit = false;
+        bool cap_file = false;
         UINT32 key;
         if(dev->set_format(fourcc, width, height) < 0)
             goto finish;
         int format = dev->get_format();
         width = dev->get_width();
         height = dev->get_height();
-        if(options->opts->verbose) cout << "format is " << format << " " << width << "x" << height << endl;
-        buf = new GVBuffer(format, width, height);
-        GVSdlRender * video = new GVSdlRender(width, height);
-        cout << "press Q to exit(on video window)\n";
+        if(verbose) cout << "format is " << format << " " << width << "x" << height << endl;
+        buf = new libgvideo::GVBuffer(format, width, height);
+        libgvrender::GVSdlRender * video = new libgvrender::GVSdlRender(width, height);
+        cout << "on video window press:\n  Q to exit\n";
+        cout << "  C to capture jpeg image\n";
         dev->stream_on();
         while( !( quit || video->quit_event() ) )
         {
@@ -342,6 +397,19 @@ int main (int argc, char *argv[])
                 framecount= dev->get_framecount();
                 timestamp = dev->get_timestamp();
             }
+            if (cap_file)
+            {
+                libgvideo::GVImage *img = new libgvideo::GVImage;
+                UINT32 size = width*height/2;
+                UINT8* jpg_buff = new UINT8 [size];
+                libgvencoder::GVJpeg* jpeg = new libgvencoder::GVJpeg(width, height);
+                size = jpeg->encode (buf->frame_data, jpg_buff, true);
+                img->save_buffer("gvideo_capture.jpg", jpg_buff, size);
+                delete jpeg;
+                delete[] jpg_buff;
+                delete img;
+                cap_file = false;
+            }
             
             video->poll_events();
             while(!video->key_events_empty())
@@ -355,6 +423,9 @@ int main (int argc, char *argv[])
                     case SDLK_q:
                         quit = true;
                         break;
+                    case SDLK_c:
+                        cap_file = true;
+                        break;
                     default:
                         cout << "Key nº" << key << " ('" << video->get_key_name(key) << "') pressed\n";
                         break;
@@ -367,12 +438,13 @@ int main (int argc, char *argv[])
     
     
   finish: 
-    cout << "deleting dev\n"; 
+    if(verbose) cout << "deleting dev\n"; 
     delete dev;
-    cout << "deleting options\n";
+    if(verbose) cout << "deleting options\n";
     delete options;
-    cout << "deleting buf\n";
+    if(verbose) cout << "deleting buf\n";
     delete buf;
-    
+    if(verbose) cout << "deleting audio\n";
+    delete audio;
     return (0);
 }

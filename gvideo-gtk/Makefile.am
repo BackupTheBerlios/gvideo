@@ -24,7 +24,9 @@ gvideo_gtk_LDFLAGS = $(LIBINTL)
 
 gvideo_gtk_LDADD = $(GVIDEOGTK_LIBS) \
                    ../$(GVIDEO_LIBRARY_NAME)/$(GVIDEO_LIBRARY_NAME).la \
-                   ../$(GVRENDER_LIBRARY_NAME)/$(GVRENDER_LIBRARY_NAME).la
+                   ../$(GVRENDER_LIBRARY_NAME)/$(GVRENDER_LIBRARY_NAME).la \
+                   ../$(GVAUDIO_LIBRARY_NAME)/$(GVAUDIO_LIBRARY_NAME).la \
+                   ../$(GVENCODER_LIBRARY_NAME)/$(GVENCODER_LIBRARY_NAME).la
 
 localedir = $(datadir)/locale
 DEFS = -DLOCALEDIR=\"$(localedir)\" @DEFS@

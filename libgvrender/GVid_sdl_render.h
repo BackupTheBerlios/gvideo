@@ -38,7 +38,8 @@
  * for key events check SDL key list at:
  *    http://www.libsdl.org/cgi/docwiki.cgi/SDLKey
  */
-
+START_LIBGVRENDER_NAMESPACE
+ 
 class GVSdlRender
 {
     int width, height, bpp;
@@ -66,6 +67,8 @@ class GVSdlRender
     bool quit_event();
     void setCaption(std::string _caption);
 };
+
+END_LIBGVRENDER_NAMESPACE
 
 #endif
 

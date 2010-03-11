@@ -39,6 +39,8 @@
 #define IO_MMAP 1
 #define IO_READ 2
 
+START_LIBGVIDEO_NAMESPACE
+
 struct Fps_s
 {
     int num;
@@ -87,7 +89,7 @@ class GVDevice
     UINT64 timestamp[NB_BUFFER];
     int framecount;
     
-    GVTime *time;
+    gvcommon::GVTime *time;
 
     //struct v4l2_buffer buf;             // v4l2 buffer struct
     //struct v4l2_requestbuffers rb;      // v4l2 request buffers struct
@@ -144,5 +146,6 @@ class GVDevice
 
 };
 
+END_LIBGVIDEO_NAMESPACE
 
 #endif

@@ -34,6 +34,8 @@
 
 #define SUP_PIX_FMT 23
 
+START_LIBGVIDEO_NAMESPACE
+
 /*constructors*/
 GVFormats::GVFormats()
 {
@@ -233,4 +235,4 @@ int GVFormats::get_PixFormat(std::string mode)
 	return (listSupFormats[0].format); /*default is- MJPG*/
 }
 
-
+END_LIBGVIDEO_NAMESPACE

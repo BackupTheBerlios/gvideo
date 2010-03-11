@@ -31,6 +31,8 @@
 
 #include "gvcommon.h"
 
+START_LIBGVIDEO_NAMESPACE
+
 class GVConvert
 {
     void convert_border_bayer_line_to_bgr24( UINT8* bayer, UINT8* adjacent_bayer, 
@@ -66,6 +68,6 @@ class GVConvert
     
 };
 
-
+END_LIBGVIDEO_NAMESPACE
 
 #endif

@@ -32,7 +32,7 @@
 #include "GVMatroska.h"
 
 
-using namespace std;
+START_LIBGVENCODER_NAMESPACE
 
 GVMatroska::GVMatroska(const char* filename, 
                        const char *writingApp,
@@ -53,7 +53,7 @@ GVMatroska::GVMatroska(const char* filename,
     if (!root)
         goto error;
 
-    myfile.open (filename,  ios::out | ios::app | ios::binary);
+    myfile.open (filename, std::ios::out | std::ios::binary);
     if(myfile.is_open())
     {
         mk_Context *c, *ti, *v, *ti2, *ti3, *a;
@@ -123,17 +123,14 @@ GVMatroska::GVMatroska(const char* filename,
         /* signed 8 byte integer in nanoseconds 
          * with 0 indicating the precise beginning of the millennium (at 2001-01-01T00:00:00,000000000 UTC)
          * value: ns_time - 978307200000000000  ( Unix Epoch is 01/01/1970 ) */
-        GVTime *time = new GVTime;
+        gvcommon::GVTime *time = new gvcommon::GVTime;
         UINT64 date = time->ns_time() - 978307200000000000LL;
         delete time;
         TEST(mk_writeUIntRaw(ti, MATROSKA_ID_DATEUTC, date)); /* always use the full 8 bytes */
         /*generate seg uid - 16 byte random int*/
-        GVRand* rand_uid= new GVRand;
-        int seg_uid[4] = {0,0,0,0};
-        seg_uid[0] = rand_uid->generate();
-        seg_uid[1] = rand_uid->generate();
-        seg_uid[2] = rand_uid->generate();
-        seg_uid[3] = rand_uid->generate();
+        gvcommon::GVRand* rand_uid= new gvcommon::GVRand;
+        UINT8 seg_uid[16] ;
+        rand_uid->generate_bytes(seg_uid, 16);
         TEST(mk_writeBin(ti, MATROSKA_ID_SEGMENTUID, seg_uid, 16));
         TEST(mk_writeFloat(ti, MATROSKA_ID_DURATION, 0)); //Track Duration
         /*ti->d_cur - float size(4) + EBML header size(24) + extra empty bytes for segment size(6)*/
@@ -152,7 +149,7 @@ GVMatroska::GVMatroska(const char* filename,
         
         TEST(mk_writeUInt(ti2, MATROSKA_ID_TRACKNUMBER, 1));        /* TrackNumber */
 
-        int track_uid1 = rand_uid->generate();
+        int track_uid1 = rand_uid->generate_range();
         TEST(mk_writeUInt(ti2, MATROSKA_ID_TRACKUID, track_uid1));  /* Track UID  */
         /* TrackType 1 -video 2 -audio */
         TEST(mk_writeUInt(ti2, MATROSKA_ID_TRACKTYPE, MATROSKA_TRACK_TYPE_VIDEO)); 
@@ -200,7 +197,7 @@ GVMatroska::GVMatroska(const char* filename,
             
             TEST(mk_writeUInt(ti3, MATROSKA_ID_TRACKNUMBER, 2));        /* TrackNumber            */
 
-            int track_uid2 = rand_uid->generate();
+            int track_uid2 = rand_uid->generate_range();
             TEST(mk_writeUInt(ti3, MATROSKA_ID_TRACKUID, track_uid2));
             /* TrackType 1 -video 2 -audio */
             TEST(mk_writeUInt(ti3, MATROSKA_ID_TRACKTYPE, MATROSKA_TRACK_TYPE_AUDIO));
@@ -247,12 +244,12 @@ GVMatroska::GVMatroska(const char* filename,
     }
     else
     {
-        cerr << "ERROR: Could not open file " << filename << " for write\n";
+        std::cerr << "ERROR: Could not open file " << filename << " for write\n";
     }
     
   error:
     if (!wrote_header)
-        cerr << "ERROR: failed to create " << filename << " header\n";
+        std::cerr << "ERROR: failed to create " << filename << " header\n";
 };
 
 GVMatroska::~GVMatroska()
@@ -263,39 +260,39 @@ GVMatroska::~GVMatroska()
     if (wrote_header)
     {
         /* move to end of file */
-        myfile.seekp(0, ios_base::end);
+        myfile.seekp(0, std::ios_base::end);
         /* store last position */
         INT64 fpos = myfile.tellp();
         INT64 CuesPos = (INT64) fpos - 36;
         //printf("cues at %llu\n",(unsigned long long) CuesPos);
         write_cues();
         /* move to end of file */
-        myfile.seekp(0, ios_base::end);
+        myfile.seekp(0, std::ios_base::end);
         fpos = myfile.tellp();
         INT64 SeekHeadPos = (INT64) fpos - 36;
         //printf("SeekHead at %llu\n",(unsigned long long) SeekHeadPos);
         /* write seekHead */
         write_SeekHead();
         /* move to end of file */
-        myfile.seekp(0, ios_base::end);
+        myfile.seekp(0, std::ios_base::end);
         INT64 lLastPos = myfile.tellp();
         INT64 seg_size = lLastPos - segment_size_ptr;
         seg_size |= 0x0100000000000000LL;
         /* move to segment entry */
-        myfile.seekp(segment_size_ptr, ios_base::beg);
+        myfile.seekp(segment_size_ptr, std::ios_base::beg);
         if (mk_writeSegPos (root, seg_size ) < 0 || mk_flushContextData(root) < 0)
             ret = -1;
         /* move to seekentries */
-        myfile.seekp(seekhead_pos, ios_base::beg);
+        myfile.seekp(seekhead_pos, std::ios_base::beg);
         write_SegSeek (CuesPos, SeekHeadPos);
         /* move to default video frame duration entry and set the correct value*/
-        myfile.seekp(def_duration_ptr, ios_base::beg);
+        myfile.seekp(def_duration_ptr, std::ios_base::beg);
         if ((mk_writeUIntRaw(root, MATROSKA_ID_TRACKDEFAULTDURATION, def_duration)) < 0 ||
             mk_flushContextData(root) < 0)
                 ret = -1;
 
         /* move to segment duration entry */
-        myfile.seekp(duration_ptr, ios_base::beg);
+        myfile.seekp(duration_ptr, std::ios_base::beg);
         if (mk_writeFloatRaw(root, (float)(double)(max_frame_tc/ timescale)) < 0 ||
             mk_flushContextData(root) < 0)
                 ret = -1;
@@ -303,7 +300,7 @@ GVMatroska::~GVMatroska()
     mk_destroyContexts();
     cluster_pos.clear();
 
-    cout << "closed matroska file\n";
+    std::cout << "closed matroska file\n";
 };
 
 bool GVMatroska::failed()
@@ -868,3 +865,4 @@ int GVMatroska::mk_addAudioFrameData(const void *data, unsigned size)
     return mk_appendContextData(audio_frame, data, size);
 }
 
+END_LIBGVENCODER_NAMESPACE

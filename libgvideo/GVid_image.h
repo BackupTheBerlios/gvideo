@@ -31,6 +31,8 @@
 #include <string>
 #include "libgvideo/gvideo.h"
 
+START_LIBGVIDEO_NAMESPACE
+
 struct BITMAPFILEHEADER 
 { 
     UINT16    bfType; //Specifies the file type, must be BM
@@ -77,7 +79,10 @@ struct JPGFILEHEADER
 class GVImage
 {
   public:
-    int save_BPM(const char* filename, int width, int height, int BitCount, UINT8 *ImagePix);
+    int save_buffer(const char* filename, UINT8 *Picture, UINT32 image_size);
+    int save_BPM(const char* filename, int width, int height, UINT8 *ImagePix, int BitCount = 24);
 };
+
+END_LIBGVIDEO_NAMESPACE
 
 #endif

@@ -32,6 +32,8 @@
 #include "libgvideo/GVid_color_convert.h"
 #include "libgvideo/GVid_mjpg_dec.h"
 
+START_LIBGVIDEO_NAMESPACE
+
 class GVBuffer
 {
     GVConvert *conversor;
@@ -51,5 +53,6 @@ class GVBuffer
     int frame_decode(size_t size, int pix_order=-1);
 };
 
+END_LIBGVIDEO_NAMESPACE
 #endif
 

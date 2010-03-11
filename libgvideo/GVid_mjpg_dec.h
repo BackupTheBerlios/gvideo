@@ -74,6 +74,8 @@
 #define ERR_BAD_TABLES 14
 #define ERR_DEPTH_MISMATCH 15
 
+START_LIBGVIDEO_NAMESPACE
+
 struct comp 
 {
     int cid;
@@ -186,5 +188,6 @@ class GVMjpgDec
     
 };
 
+END_LIBGVIDEO_NAMESPACE
 
 #endif

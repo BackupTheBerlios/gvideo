@@ -29,7 +29,7 @@
 #include <cstdlib>
 #include "libgvrender/GVid_sdl_render.h"
 
-using namespace std;
+START_LIBGVRENDER_NAMESPACE
 
 //constructor
 GVSdlRender::GVSdlRender(int _width, int _height, int _bpp /* = 0 */, bool _hard_surf /* = true */)
@@ -70,7 +70,7 @@ int GVSdlRender::video_init()
         /*----------------------------- Test SDL capabilities ---------------------*/
         if (SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER) < 0) 
         {
-            cerr << "Couldn't initialize SDL:" << SDL_GetError() << endl;
+            std::cerr << "Couldn't initialize SDL:" << SDL_GetError() << std::endl;
             return (-1);
         }
         if (hard_surf)
@@ -86,30 +86,30 @@ int GVSdlRender::video_init()
  
         if (SDL_VideoDriverName(driver, sizeof(driver))) 
         {
-            cout << "Video driver:" << driver;
+            std::cout << "Video driver:" << driver;
         }
 
         info = SDL_GetVideoInfo();
 
-        if (info->wm_available) cout << "A window manager is available\n";
+        if (info->wm_available) std::cout << "A window manager is available\n";
 
         if (info->hw_available) 
         {
-            cout << "Hardware surfaces are available (" << info->video_mem <<"K video memory)\n";
+            std::cout << "Hardware surfaces are available (" << info->video_mem <<"K video memory)\n";
             SDL_VIDEO_Flags |= SDL_HWSURFACE;
         }
         if (info->blit_hw) 
         {
-            cout << "Copy blits between hardware surfaces are accelerated\n";
+            std::cout << "Copy blits between hardware surfaces are accelerated\n";
             SDL_VIDEO_Flags |= SDL_ASYNCBLIT;
         }
 
-        if (info->blit_hw_CC) cout << "Colorkey blits between hardware surfaces are accelerated\n";
-        if (info->blit_hw_A) cout << "Alpha blits between hardware surfaces are accelerated\n";
-        if (info->blit_sw) cout << "Copy blits from software surfaces to hardware surfaces are accelerated\n";
-        if (info->blit_sw_CC) cout << "Colorkey blits from software surfaces to hardware surfaces are accelerated\n";
-        if (info->blit_sw_A) cout << "Alpha blits from software surfaces to hardware surfaces are accelerated\n";
-        if (info->blit_fill) cout << "Color fills on hardware surfaces are accelerated\n";
+        if (info->blit_hw_CC) std::cout << "Colorkey blits between hardware surfaces are accelerated\n";
+        if (info->blit_hw_A) std::cout << "Alpha blits between hardware surfaces are accelerated\n";
+        if (info->blit_sw) std::cout << "Copy blits from software surfaces to hardware surfaces are accelerated\n";
+        if (info->blit_sw_CC) std::cout << "Colorkey blits from software surfaces to hardware surfaces are accelerated\n";
+        if (info->blit_sw_A) std::cout << "Alpha blits from software surfaces to hardware surfaces are accelerated\n";
+        if (info->blit_fill) std::cout << "Color fills on hardware surfaces are accelerated\n";
 
 
         if (!(SDL_VIDEO_Flags & SDL_HWSURFACE))
@@ -135,7 +135,7 @@ int GVSdlRender::video_init()
     return (0);
 }
 
-void GVSdlRender::setCaption(string _caption)
+void GVSdlRender::setCaption(std::string _caption)
 {
     caption.assign(_caption);
     SDL_WM_SetCaption(caption.c_str(), NULL); 
@@ -197,4 +197,6 @@ bool GVSdlRender::quit_event()
 {
     return _quit_event;
 }
+
+END_LIBGVRENDER_NAMESPACE
 

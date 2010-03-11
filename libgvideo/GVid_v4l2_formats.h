@@ -35,7 +35,7 @@
 
 #define SUP_PIX_FMT 23
 
-
+START_LIBGVIDEO_NAMESPACE
 // Class Definition
 class GVFormats 
 {
@@ -57,5 +57,7 @@ class GVFormats
     std::string get_PixMode(int pixfmt);
     int get_PixFormat(std::string mode);
 };
+
+END_LIBGVIDEO_NAMESPACE
 
 #endif

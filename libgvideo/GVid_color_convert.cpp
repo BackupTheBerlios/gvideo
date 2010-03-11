@@ -28,6 +28,7 @@
 
 #include "libgvideo/GVid_color_convert.h" 
 
+START_LIBGVIDEO_NAMESPACE
 /*------------------------------- Color space conversions --------------------*/
 /* regular yuv (YUYV) to rgb24*/
 void 
@@ -1397,3 +1398,5 @@ void GVConvert::yuv400pto422(int * out,unsigned char *pic,int width)
 		pic1 += 2 * (width -8);
 	}
 }
+
+END_LIBGVIDEO_NAMESPACE

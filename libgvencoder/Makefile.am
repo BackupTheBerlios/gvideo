@@ -1,7 +1,7 @@
 ## sub directory
 
-h_sources = GVMatroska.h
-cpp_sources = GVMatroska.cpp
+h_sources = GVMatroska.h GVJpeg_encoder.h
+cpp_sources = GVMatroska.cpp GVJpeg_encoder.cpp
 
 #Install the headers in a versioned directory - gvideo-x.x/libgvencoder:
 library_includedir=$(includedir)/$(PACKAGE)-$(PACKAGE_RELEASE)/$(GVENCODER_LIBRARY_NAME)
