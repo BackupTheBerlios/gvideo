@@ -29,28 +29,51 @@
 #define GVID_BUFFER_H
 
 #include "gvcommon.h"
+#include "libgvideo/GVid_v4l2.h"
 #include "libgvideo/GVid_color_convert.h"
 #include "libgvideo/GVid_mjpg_dec.h"
 
+
 START_LIBGVIDEO_NAMESPACE
+
+struct VidBuff
+{
+    bool processed;
+    int raw_size;
+    UINT64 time_stamp;
+    UINT8 * raw_frame;
+    UINT8 * yuv_frame;
+};
 
 class GVBuffer
 {
     GVConvert *conversor;
     GVMjpgDec *jpgdec;
+    GVDevice *dev;
+    
+    pthread_mutex_t mutex;
     int format, width, height;
     
     UINT8 *tmp_data;
-
+    
+    int _frame_buff_size;
+    int _raw_size;
+    int _yuv_size;
+    
+    VidBuff *frameBuff;
+    int pIndex;
+    int cIndex;
     // internal functions
     int alloc_frame_buff();
     
   public:
-    UINT8 *frame_data;
-    UINT8 *raw_data;
-    GVBuffer(int b_format=V4L2_PIX_FMT_MJPEG, int b_width=640, int b_height=480);
+    GVBuffer(int b_format=V4L2_PIX_FMT_MJPEG, int b_width=640, int b_height=480, int frame_buff_size=1, GVDevice *device=NULL);
     ~GVBuffer();
-    int frame_decode(size_t size, int pix_order=-1);
+    VidBuff* new_VidBuff(VidBuff *frame);
+    void delete_VidBuff(VidBuff *frame);
+    int frame_decode(size_t size, int pix_order = -1);
+    int produce_nextFrame(int pix_order = -1);
+    int consume_nextFrame(VidBuff *frame);
 };
 
 END_LIBGVIDEO_NAMESPACE

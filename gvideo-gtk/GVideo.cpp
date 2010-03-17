@@ -31,6 +31,7 @@
 #include "libgvrender/render.h"
 #include "libgvaudio/GVAudio.h"
 #include "libgvencoder/GVJpeg_encoder.h"
+#include "libgvencoder/GVMatroska.h"
 
 
 using namespace std;
@@ -42,10 +43,13 @@ class GVOpt : public libgvideo::GVOptions
         int sc, val, width, height;
         int gc;
         int fps;
+        int adevice;
+        UINT64 vcaptime;
         bool list, verbose, lcontrols, render, laudio;
         string devicename;
         string fourcc;
-        string picture; 
+        string picture;
+        string videofile;
     };
     
   public:
@@ -60,6 +64,8 @@ class GVOpt : public libgvideo::GVOptions
             opts->height = 0;
             opts->fps = 0;
             opts->gc = -1;
+            opts->adevice = -1;
+            opts->vcaptime = 5; //in seconds
             opts->list = false;
             opts->verbose = false;
             opts->lcontrols = false;
@@ -96,6 +102,9 @@ class GVOpt : public libgvideo::GVOptions
                 break;
             case 'p':   /* -f or --format */
                 opts->picture = string(optarg);
+                break;
+            case 'e':   /* -e or --video */
+                opts->videofile = string(optarg);
                 break;
             case 'f':   /* -f or --format */
                 opts->fourcc = string(optarg);
@@ -155,6 +164,14 @@ class GVOpt : public libgvideo::GVOptions
                     opts->gc = -1;
                 }    
                 break;
+            case 't':   /* -t or --adevice */
+                
+                if (!gvcommon::from_string<int>(opts->adevice, string(optarg), dec))
+                {
+                    cerr << "couldn't convert index " << optarg << " to int value\n";
+                    opts->adevice = -1;
+                }    
+                break;
             case '?':   /* The user specified an invalid option.  */
                 /* Print usage information to standard error, and exit with exit
                 code one (indicating abnormal termination).  */
@@ -179,12 +196,13 @@ int main (int argc, char *argv[])
     UINT64 timestamp = 0;
     string fourcc;
     int width, height;
-    libgvideo::Fps_s *fps;
+    libgvideo::Fps_s* fps = new libgvideo::Fps_s;
     gvcommon::GVString* gvstr = new gvcommon::GVString;
     //parse command line options
     vector<libgvideo::GV_options> opts;
     
     opts.push_back((libgvideo::GV_options){"device",'d', true, "DEVICENAME", "sets device to DEVICENAME"});
+    opts.push_back((libgvideo::GV_options){"adevice",'t', true, "INDEX", "sets audio device to INDEX"});
     opts.push_back((libgvideo::GV_options){"format",'f', true, "FOURCC", "sets video format to FOURCC if supported"});
     opts.push_back((libgvideo::GV_options){"resolution",'r', true, "WIDTHxHEIGHT", "sets video resolution"});
     opts.push_back((libgvideo::GV_options){"fps",'i', true, "FPS", "sets frame interval"});
@@ -193,6 +211,7 @@ int main (int argc, char *argv[])
     opts.push_back((libgvideo::GV_options){"set",'s', true, "INDEX=VAL", "sets control with list INDEX to VAL"});
     opts.push_back((libgvideo::GV_options){"get",'g', true, "INDEX", "gets value from control with list INDEX"});
     opts.push_back((libgvideo::GV_options){"picture",'p', true, "FILENAME", "grab and save frame picure"});
+    opts.push_back((libgvideo::GV_options){"video",'e', true, "FILENAME", "capture video to file"});
     opts.push_back((libgvideo::GV_options){"render",'j', false, "", "grab and render frames"});
     opts.push_back((libgvideo::GV_options){"laudio",'a', false, "", "lists input audio devices"});
     opts.push_back((libgvideo::GV_options){"verbose",'v', false, "", "prints a lot of debug messages"});
@@ -208,6 +227,7 @@ int main (int argc, char *argv[])
     //get device
     libgvideo::GVDevice *dev = new libgvideo::GVDevice(options->opts->devicename, options->opts->verbose);
     libgvideo::GVBuffer *buf = NULL;
+    libgvideo::VidBuff *framebuf = NULL;
 
     libgvaudio::GVAudio *audio = NULL;
     bool verbose = options->opts->verbose;
@@ -311,9 +331,13 @@ int main (int argc, char *argv[])
     
     if(options->opts->fps > 0) 
     { 
-        fps = dev->get_framerate();
         fps->denom = options->opts->fps;
-        dev->setFPS=true;
+        dev->set_fps(fps);
+    }
+    else
+    {
+        fps->denom = 25;
+        fps->num = 1;
     }
     
     if(options->opts->picture.size() > 0)
@@ -324,14 +348,20 @@ int main (int argc, char *argv[])
         width = dev->get_width();
         height = dev->get_height();
         if(verbose) cout << "format is " << format << " " << width << "x" << height << endl;
-        buf = new libgvideo::GVBuffer(format, width, height);
+        
+        buf = new libgvideo::GVBuffer(format, width, height, 1, dev);
+        framebuf = buf->new_VidBuff(framebuf);
+        
         dev->stream_on();
+        
         int ntries = 0;
-        while((dev->grab_frame(buf->raw_data) < 0) && ntries < 10)
+        
+        while( (buf->produce_nextFrame() < 0) && (ntries < 10))
         {
             ntries++;
         }
-        buf->frame_decode(dev->get_bytesused());
+        
+        buf->consume_nextFrame(framebuf);
         
         string filename = gvstr->get_Filename(options->opts->picture);
         string ext = gvstr->get_Extension(filename);
@@ -343,7 +373,7 @@ int main (int argc, char *argv[])
         {
             libgvideo::GVConvert *conv = new libgvideo::GVConvert;
             UINT8 *rgb_buff = new UINT8 [width*height*3];
-            conv->yuyv2bgr (buf->frame_data, rgb_buff, width, height);
+            conv->yuyv2bgr (framebuf->yuv_frame, rgb_buff, width, height);
             img->save_BPM(options->opts->picture.c_str(), width, height, rgb_buff);
             delete conv;
             delete[] rgb_buff;
@@ -353,7 +383,7 @@ int main (int argc, char *argv[])
             UINT32 size = width*height/2;
             UINT8* jpg_buff = new UINT8 [size];
             libgvencoder::GVJpeg* jpeg = new libgvencoder::GVJpeg(width, height);
-            size = jpeg->encode (buf->frame_data, jpg_buff, true);
+            size = jpeg->encode (framebuf->yuv_frame, jpg_buff, true);
             img->save_buffer(options->opts->picture.c_str(), jpg_buff, size);
             delete[] jpg_buff;
             delete jpeg;
@@ -364,6 +394,155 @@ int main (int argc, char *argv[])
         }
         
         delete img;
+    }
+    if(options->opts->videofile.size() > 0)
+    {
+        bool quit = false;
+        if(dev->set_format(fourcc, width, height) < 0)
+            goto finish;
+        int format = dev->get_format();
+        width = dev->get_width();
+        height = dev->get_height();
+        if(verbose) cout << "format is " << format << " " << width << "x" << height << endl;
+        
+        buf = new libgvideo::GVBuffer(format, width, height, 1, dev);
+        framebuf = buf->new_VidBuff(framebuf);
+        
+        /*get a new audio instance*/
+        if(!audio)
+            audio = new libgvaudio::GVAudio(verbose);
+        /*get a new audio buffer*/
+        libgvaudio::AudBuff *aud_buf;
+        aud_buf = audio->initBuff(aud_buf);
+        
+        /*get audio parameters*/
+        int adev = audio->setDevice(options->opts->adevice);
+        if(verbose) cout << "using audio device id:" << adev << endl;
+        int channels = audio->listAudioDev[adev].channels;
+        float samprate = float(1.0 * audio->listAudioDev[adev].samprate);
+        int frame_size = DEF_AUD_FRAME_SIZE; /*use the default value*/
+        if(verbose) cout << "audio: samprate=" << samprate << " channels=" << channels << endl;
+        
+        /*audio frame duration*/
+        UINT64 afdur = (UINT64) (1000*frame_size)/samprate;
+        afdur = afdur * 1000000;
+        /*video frame duration (use the set fps (25 default))*/
+        UINT64 vfdur = 1 * 1e9/fps->denom;
+        
+        UINT32 size = width*height/2;
+        UINT8* jpg_buff = new UINT8 [size];
+        /*get a new jpeg encoder instance*/
+        libgvencoder::GVJpeg* jpeg = new libgvencoder::GVJpeg(width, height);
+        
+        /*matroska video codec private data*/
+        libgvideo::BITMAPINFOHEADER* mkv_priv = new libgvideo::BITMAPINFOHEADER;
+        mkv_priv->biSize = 0x00000028; // 40 bytes
+        mkv_priv->biWidth = width;
+        mkv_priv->biHeight = height;
+        mkv_priv->biPlanes = 1;
+        mkv_priv->biBitCount = 24;
+        mkv_priv->biCompression = V4L2_PIX_FMT_MJPEG;
+        mkv_priv->biSizeImage = width * height * 2; //for rgb use w*h*3
+        mkv_priv->biXPelsPerMeter = 0;
+        mkv_priv->biYPelsPerMeter = 0;
+        mkv_priv->biClrUsed = 0;
+        mkv_priv->biClrImportant = 0;
+        /*define a new matroska container*/
+        libgvencoder::GVMatroska* matroska = new libgvencoder::GVMatroska( 
+                                                        options->opts->videofile.c_str(),
+                                                        "-gvideo-",
+                                                        "V_MS/VFW/FOURCC",
+                                                        "A_PCM/INT/LIT",
+                                                        mkv_priv, 40,
+                                                        vfdur,
+                                                        NULL, 0,
+                                                        afdur,
+                                                        1000000,
+                                                        width, height,
+                                                        width, height,
+                                                        samprate, channels, 16,
+                                                        true);
+        delete mkv_priv;
+        dev->stream_on();
+        
+        bool try_next = true;
+        int count = 0;
+        UINT64 timestamp_f0 = 0;
+        UINT64 vts = 0;
+        UINT64 ats = 0;
+        /*try to get the first video frame and use it's timestamp as reference*/
+        /* so that we start at timestamp=0*/
+        while ((buf->produce_nextFrame() < 0) && (count < 10))
+        {
+            count++;
+            cout << "loop count: " << count << endl;
+        }
+        
+        /*get video start time to sync with audio start time*/
+        gvcommon::GVTime *timer = new gvcommon::GVTime;
+        UINT64 vid_start_time = timer->ns_time_monotonic();
+        delete timer; 
+        
+        if(count < 10)
+        {
+            buf->consume_nextFrame(framebuf);
+            timestamp_f0 = framebuf->time_stamp;
+            vts = 0;
+            
+            size = jpeg->encode (framebuf->yuv_frame, jpg_buff, false);
+            matroska->add_VideoFrame(jpg_buff, size, vts);
+        }
+        
+        if(verbose) cout << "ref ts=" << timestamp_f0 << endl;
+        /*start audio stream*/
+        audio->startStream();
+
+        while( !quit )
+        {
+            try_next = true; 
+            while ( try_next )
+            {
+                /*check audio buffer*/
+                try_next = audio->getNext(aud_buf);
+                if (try_next)
+                {
+                    ats = aud_buf->time_stamp - vid_start_time;
+                    matroska->add_AudioFrame(aud_buf->i_frame, 
+                                            aud_buf->samples * sizeof(INT16), 
+                                            ats);
+                    /*audio timestamp more recent than video - go and process another video frame*/
+                    if(ats >= vts)
+                        try_next = false;
+                }
+            }
+            /*grab and process another video frame*/
+            if (buf->produce_nextFrame() >= 0);
+            {
+                buf->consume_nextFrame(framebuf);
+                vts = framebuf->time_stamp - timestamp_f0;
+                if( vts > ((UINT64) options->opts->vcaptime * GV_NSEC_PER_SEC))
+                {
+                    /*we already captured the defined amount of time so let's finish*/
+                    quit = true;
+                }
+                /*encode yuv frame into MJPG format*/
+                size = jpeg->encode (framebuf->yuv_frame, jpg_buff, false);
+                /*add video frame into the matroska container*/
+                matroska->add_VideoFrame(jpg_buff, size, vts);
+            }
+        }
+        /* stop the audio stream*/
+        audio->stopStream();
+        
+        /*calc and set the default video frame duration (fps)*/
+        vfdur = vts / dev->get_framecount();
+        matroska->set_DefDuration(vfdur);
+        
+        /*clean up*/
+        delete matroska;
+        delete[] jpg_buff;
+        delete jpeg;
+        audio->deleteBuff(aud_buf);
     }
     
     if(options->opts->render)
@@ -377,17 +556,17 @@ int main (int argc, char *argv[])
         width = dev->get_width();
         height = dev->get_height();
         if(verbose) cout << "format is " << format << " " << width << "x" << height << endl;
-        buf = new libgvideo::GVBuffer(format, width, height);
+        buf = new libgvideo::GVBuffer(format, width, height, 1, dev);
         libgvrender::GVSdlRender * video = new libgvrender::GVSdlRender(width, height);
         cout << "on video window press:\n  Q to exit\n";
         cout << "  C to capture jpeg image\n";
         dev->stream_on();
         while( !( quit || video->quit_event() ) )
         {
-            dev->grab_frame(buf->raw_data);
-            buf->frame_decode(dev->get_bytesused());
-            video->render(buf->frame_data);
-            if((dev->get_timestamp() - timestamp) > 2 * GV_NSEC_PER_SEC)
+            buf->produce_nextFrame();
+            buf->consume_nextFrame(framebuf);
+            video->render(framebuf->yuv_frame);
+            if((framebuf->time_stamp - timestamp) > 2 * GV_NSEC_PER_SEC)
             {
                 float frate = (dev->get_framecount() - framecount) / 2;
                 ostringstream s;
@@ -395,7 +574,7 @@ int main (int argc, char *argv[])
 
                 video->setCaption(s.str());
                 framecount= dev->get_framecount();
-                timestamp = dev->get_timestamp();
+                timestamp = framebuf->time_stamp;
             }
             if (cap_file)
             {
@@ -403,7 +582,7 @@ int main (int argc, char *argv[])
                 UINT32 size = width*height/2;
                 UINT8* jpg_buff = new UINT8 [size];
                 libgvencoder::GVJpeg* jpeg = new libgvencoder::GVJpeg(width, height);
-                size = jpeg->encode (buf->frame_data, jpg_buff, true);
+                size = jpeg->encode (framebuf->yuv_frame, jpg_buff, true);
                 img->save_buffer("gvideo_capture.jpg", jpg_buff, size);
                 delete jpeg;
                 delete[] jpg_buff;
@@ -443,6 +622,7 @@ int main (int argc, char *argv[])
     if(verbose) cout << "deleting options\n";
     delete options;
     if(verbose) cout << "deleting buf\n";
+    buf->delete_VidBuff(framebuf);
     delete buf;
     if(verbose) cout << "deleting audio\n";
     delete audio;

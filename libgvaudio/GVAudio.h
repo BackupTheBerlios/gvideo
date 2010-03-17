@@ -58,6 +58,7 @@
 //buffer defs
 #define AUDBUFF_SIZE 100   //max number of audio buffers in the queue
 #define MPG_NUM_SAMP 1152  //number of samples in a audio buffer (MPEG frame) 
+#define DEF_AUD_FRAME_SIZE MPG_NUM_SAMP*4
 
 START_LIBGVAUDIO_NAMESPACE
 
@@ -66,15 +67,18 @@ struct audioDevice
     int id;
     std::string name;
     int channels;
-    double samprate;
+    int samprate;
     double high_input_latency;
     double low_input_latency;
 };
 
 struct AudBuff
 {
+    bool processed;
     UINT64 time_stamp;
-    float *frame;
+    float*  f_frame;
+    INT16* i_frame;
+    int samples;
 };
 
 class GVAudio
@@ -99,15 +103,19 @@ class GVAudio
     float *recordedSamples;         // callback frame buffer
     int frame_size;                 // audio frame size (def to mpg size =1152 samp per chan)
     int sampleIndex;                // callback frame buffer index
-    std::queue<AudBuff> audio_buff; // buffer queue for audio data
-    int64_t time_stamp;             // audio frame time stamp
-    int64_t ts_ref;                 // timestamp sync reference
+    int max_samples;                // recordedSamples buffer size
+    AudBuff *audio_buff;            // ring buffer for audio data
+    int pIndex;                     // ring buffer producer index;
+    int cIndex;                     // ring buffer consumer index;
+    UINT64 time_stamp;              // audio frame time stamp
+    UINT64 ts_ref;                  // timestamp sync reference
     UINT16 *pcm_sndBuff;            // buffer for pcm coding with int16
     int snd_Flags;                  // effects flag
     int skip_n;                     // video frames to skip
     UINT64 delay;                   // in nanosec - h264 has a two frame delay that must be compensated
     //GMutex *mutex;                // audio mutex
     void fill_audio_buffer();
+    INT16 clip_int16 (float in);
     
     int recordCallback (const void *inputBuffer, void *outputBuffer,
                         unsigned long framesPerBuffer,
@@ -139,13 +147,14 @@ class GVAudio
     ~GVAudio();
     void float_to_int16 (AudBuff *proc_buff);
     std::vector<audioDevice> listAudioDev;
-    int setDevice(int index);
+    int setDevice(int index = -1);
     int getDevice();
     int stopStream();
-    int startStream(int samp_rate=0, int chan=0, int frm_size=0);
+    int startStream(UINT64 timestamp_ref=0, int samp_rate=0, int chan=0, int frm_size=0);
     //caller must clean buffer after consuming by calling free_buff
-    AudBuff popAudBuff();
-    void free_buff(AudBuff *ab);
+    bool getNext(AudBuff* ab);
+    AudBuff* initBuff(AudBuff *ab);
+    void deleteBuff(AudBuff *ab);
 };
 
 END_LIBGVAUDIO_NAMESPACE

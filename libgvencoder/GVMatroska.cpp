@@ -45,9 +45,33 @@ GVMatroska::GVMatroska(const char* filename,
                        INT64 _timescale,
                        unsigned width, unsigned height,
                        unsigned d_width, unsigned d_height,
-                       float SampRate, int channels, int bitsSample)
+                       float SampRate, int channels, int bitsSample,
+                       bool _verbose /*= false*/)
 {
+    verbose = _verbose;
     wrote_header = false;
+    if(verbose) std::cout << "starting matroska\n";
+    
+    duration_ptr = 0;     //file location pointer for duration
+    segment_size_ptr = 0;  //file location pointer for segment size
+    cues_pos = 0;
+    seekhead_pos = 0;  
+    in_frame = false;
+    keyframe = false;
+    audio_frame_tc = 0;
+    audio_prev_frame_tc_scaled = 0; 
+    audio_block = 0;
+    block_n = 0;
+    audio_in_frame = false;
+    cluster_index = 0;
+    
+    cluster = NULL;
+    frame = NULL;
+    audio_frame = NULL;
+    freelist = NULL;
+    actlist = NULL;
+    cues = NULL;
+    
     
     root = mk_createContext(NULL, 0);
     if (!root)
@@ -63,10 +87,11 @@ GVMatroska::GVMatroska(const char* filename,
 
         timescale = _timescale;
         def_duration = default_frame_duration; 
-
+        
+        if(verbose) std::cout << "creating matroska header\n";
         if ((c = mk_createContext(root, EBML_ID_HEADER)) == NULL) /* EBML */
             goto error;
-        
+       
         //TEST(mk_writeUInt(c, EBML_ID_EBMLVERSION, 1));       // EBMLVersion
         //TEST(mk_writeUInt(c, EBML_ID_EBMLREADVERSION, 1));   // EBMLReadVersion
         //TEST(mk_writeUInt(c, EBML_ID_EBMLMAXIDLENGTH, 4));   // EBMLMaxIDLength
@@ -76,7 +101,7 @@ GVMatroska::GVMatroska(const char* filename,
         TEST(mk_writeUInt(c, EBML_ID_DOCTYPEREADVERSION, 2));  // DocTypeReadversion
         pos=c->d_cur;
         TEST(mk_closeContext(c, &pos));
-
+    
         /* SEGMENT starts at position 24  */
         if ((c = mk_createContext(root, MATROSKA_ID_SEGMENT)) == NULL)
             goto error;
@@ -293,7 +318,7 @@ GVMatroska::~GVMatroska()
 
         /* move to segment duration entry */
         myfile.seekp(duration_ptr, std::ios_base::beg);
-        if (mk_writeFloatRaw(root, (float)(double)(max_frame_tc/ timescale)) < 0 ||
+        if (mk_writeFloatRaw(root, float(max_frame_tc/ timescale)) < 0 ||
             mk_flushContextData(root) < 0)
                 ret = -1;
     }
@@ -311,7 +336,7 @@ bool GVMatroska::failed()
 mk_Context* GVMatroska::mk_createContext(mk_Context *parent, unsigned id)
 {
     mk_Context *c;
-
+    
     if (freelist)
     {
         c = freelist;
@@ -320,20 +345,24 @@ mk_Context* GVMatroska::mk_createContext(mk_Context *parent, unsigned id)
     else 
     {
         c = new mk_Context;
+        c->data = NULL;
+        c->d_max = 0;
+        c->d_cur = 0;
     }
 
     if (!c)
         return NULL;
-
+        
     c->parent = parent;
     c->id = id;
-
+    
     if (actlist)
         actlist->prev = &c->next;
+        
     c->next = actlist;
     c->prev = &actlist;
     actlist = c;
-
+    
     return c;
 }
 
@@ -357,7 +386,7 @@ int GVMatroska::mk_appendContextData(mk_Context *c, const void *data, unsigned s
         c->d_max = dn;
     }
 
-    memcpy((UINT8*)c->data + c->d_cur, data, size);
+    memcpy((char*)c->data + c->d_cur, data, size);
     c->d_cur = ns;
 
     return 0;
@@ -464,7 +493,6 @@ void GVMatroska::mk_destroyContexts()
 int GVMatroska::mk_writeStr(mk_Context *c, unsigned id, const char *str)
 {
     size_t  len = strlen(str);
-
     CHECK(mk_writeID(c, id));
     CHECK(mk_writeSize(c, len));
     CHECK(mk_appendContextData(c, str, len));
@@ -524,19 +552,14 @@ int GVMatroska::mk_writeSegPos(mk_Context *c, INT64 ui)
 
 int GVMatroska::mk_writeFloatRaw(mk_Context *c, float f)
 {
-    union
-    {
-        float f;
-        unsigned u;
-    } u;
+    unsigned int u = *(unsigned int*)&f;
     UINT8 c_f[4];
 
-    u.f = f;
-    c_f[0] = (UINT8) u.u >> 24;
-    c_f[1] = (UINT8) u.u >> 16;
-    c_f[2] = (UINT8) u.u >> 8;
-    c_f[3] = (UINT8) u.u;
-
+    c_f[0] = (UINT8) ((u >> 24) & 0x000000ff);
+    c_f[1] = (UINT8) ((u >> 16) & 0x000000ff);
+    c_f[2] = (UINT8) ((u >> 8) & 0x000000ff);
+    c_f[3] = (UINT8) (u & 0x000000ff);
+    //if(verbose) std::cout << std::hex << "float:" << (int) c_f[0] << (int) c_f[1] << (int) c_f[2] << (int) c_f[3] << std::endl;
     return mk_appendContextData(c, c_f, 4);
 }
 
@@ -793,7 +816,7 @@ int GVMatroska::write_SegSeek(INT64 cues_pos, INT64 seekHeadPos)
     return 0;
 }
 
-void GVMatroska::mk_setDef_Duration(UINT64 _def_duration)
+void GVMatroska::set_DefDuration(UINT64 _def_duration)
 {
     def_duration = _def_duration;
 }
@@ -863,6 +886,39 @@ int GVMatroska::mk_addAudioFrameData(const void *data, unsigned size)
     audio_in_frame = true;
 
     return mk_appendContextData(audio_frame, data, size);
+}
+
+int GVMatroska::add_VideoFrame(const void *data, unsigned size, INT64 timestamp, int keyframe /* = 0*/)
+{
+    b_writing_frame = false;
+    
+    if (mk_addFrameData(data, size) < 0 )
+        return -1;
+    mk_setFrameFlags(timestamp, keyframe);
+    if (!b_writing_frame) //sort of mutex?
+	{
+        if (mk_startFrame() < 0)
+            return -1;
+        b_writing_frame = true;
+    }
+    
+    return 0;
+}
+
+int GVMatroska::add_AudioFrame(const void *data, unsigned size, INT64 timestamp, int keyframe /* = 0*/)
+{
+    b_writing_frame = false;
+    
+    if (mk_addAudioFrameData(data, size) < 0)
+        return -1;
+    mk_setAudioFrameFlags(timestamp, keyframe);
+    if (!b_writing_frame) //sort of mutex?
+	{
+        if (mk_startAudioFrame() < 0)
+            return -1;
+    }
+    
+    return 0;
 }
 
 END_LIBGVENCODER_NAMESPACE

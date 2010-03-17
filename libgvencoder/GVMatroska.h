@@ -234,6 +234,7 @@ struct mk_Context
 
 class GVMatroska
 {
+    bool verbose;
     std::ofstream myfile;
     /*-------header------*/
     int video_only;            //not muxing audio   
@@ -252,6 +253,7 @@ class GVMatroska
     INT64 cluster_tc_scaled;
     INT64 frame_tc, prev_frame_tc_scaled, max_frame_tc;
     bool in_frame, keyframe;
+    bool b_writing_frame;
     /*-------audio-------*/
     mk_Context *audio_frame;
     INT64 audio_frame_tc, audio_prev_frame_tc_scaled; 
@@ -285,6 +287,12 @@ class GVMatroska
     int mk_flushFrame();
     int mk_flushAudioFrame();
     int mk_closeCluster();
+    int mk_startFrame();
+    int mk_startAudioFrame();
+    int mk_setFrameFlags(INT64 timestamp, int keyframe);
+    int mk_setAudioFrameFlags(INT64 timestamp, int keyframe);
+    int mk_addFrameData(const void *data, unsigned size);
+    int mk_addAudioFrameData(const void *data, unsigned size);
     int write_cues();
     int write_SeekHead();
     int write_SegSeek(INT64 cues_pos, INT64 seekHeadPos);
@@ -301,17 +309,13 @@ class GVMatroska
                INT64 timescale,
                unsigned width, unsigned height,
                unsigned d_width, unsigned d_height,
-               float SampRate, int channels, int bitsSample);
+               float SampRate, int channels, int bitsSample,
+               bool _verbose = false);
     ~GVMatroska();
     bool failed();
-    void mk_setDef_Duration(UINT64 _def_duration);
-    int mk_startFrame();
-    int mk_startAudioFrame();
-    int mk_setFrameFlags(INT64 timestamp, int keyframe);
-    int mk_setAudioFrameFlags(INT64 timestamp, int keyframe);
-    int mk_addFrameData(const void *data, unsigned size);
-    int mk_addAudioFrameData(const void *data, unsigned size);
-    
+    void set_DefDuration(UINT64 _def_duration);
+    int add_VideoFrame(const void *data, unsigned size, INT64 timestamp, int keyframe = 0);
+    int add_AudioFrame(const void *data, unsigned size, INT64 timestamp, int keyframe = 0);    
 };
 
 END_LIBGVENCODER_NAMESPACE

@@ -31,7 +31,7 @@
 #include <string>
 #include <vector>
 #include <libv4l2.h>
-#include "libgvideo/gvideo.h"
+#include "gvcommon.h"
 
 
 #define NB_BUFFER 4
@@ -51,7 +51,7 @@ struct VidCap
 {
     int width;            //width 
     int height;           //height
-    std::vector<Fps_s> fps;    //list of numerator values - should be 1 in almost all cases
+    std::vector<Fps_s> fps;    //list of fps values
 };
 
 struct VidFormats
@@ -72,12 +72,13 @@ struct InputControl
     std::vector<std::string> entries;
 };
 
-
 class GVDevice 
 {
     bool verbose;
     bool stream_ready; //flag if we have set a format for the device
     bool streaming; //flag if video stream is on
+    bool mmaped;
+    bool setFPS; //flag fps change
     struct Fps_s *fps;
     int fd;
     int width;
@@ -117,8 +118,8 @@ class GVDevice
     int query_buff();
     int queue_buff();
     int alloc_frame_buff();
-    int set_framerate();
-
+    int set_framerate(Fps_s* frate = NULL);
+    
   public:
     std::vector<VidFormats> listVidFormats; //list of supported Pixel Formats;
     std::vector<InputControl> listControls; //list of controls
@@ -134,8 +135,8 @@ class GVDevice
     int get_format();
     int get_width();
     int get_height();
-    Fps_s* get_framerate();
-    bool setFPS; //flag fps change
+    bool get_fps(Fps_s* frate = NULL);
+    bool set_fps(Fps_s* frate);
     int get_framecount();
     UINT64 get_timestamp();
     int stream_on();

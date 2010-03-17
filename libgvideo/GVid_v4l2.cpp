@@ -41,6 +41,7 @@ START_LIBGVIDEO_NAMESPACE
 /*constructors*/
 GVDevice::GVDevice(std::string device_name /*= "/dev/video0"*/, bool verbosity /*= false*/)
 {
+    int i = 0;
     verbose = verbosity;
     buff_index = 0;
     fps = new Fps_s;
@@ -63,10 +64,14 @@ GVDevice::GVDevice(std::string device_name /*= "/dev/video0"*/, bool verbosity /
     stream_ready = false;
     streaming = false;
     setFPS = false;
+    mmaped = false;
     framecount = 0;
     
     //defaults
     method = IO_MMAP;
+    
+    for (i=0; i < NB_BUFFER; i++)
+        timestamp[i] = 0;
 }
 /*destructor*/
 GVDevice::~GVDevice()
@@ -165,7 +170,7 @@ void GVDevice::clean_buffers()
             case IO_MMAP:
             default:
                 //delete requested buffers
-                unmap_buff();
+                if(mmaped) unmap_buff();
                 memset(&rb, 0, sizeof(struct v4l2_requestbuffers));
                 rb.count = 0;
                 rb.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -179,7 +184,6 @@ void GVDevice::clean_buffers()
         }
     }
 }
-
 
 /* clean video formats list
  *
@@ -723,10 +727,12 @@ int GVDevice::map_buff()
             buff_offset[i]);
         if (mem[i] == MAP_FAILED) 
         {
-            std::cerr << "Unable to map buffer:" << strerror(errno) << std::endl;
+            std::cerr << "Unable to map buffer[" << i << "]:" << strerror(errno) << std::endl;
+            mmaped = false;
             return -1;
         }
     }
+    mmaped = true;
     return (0);
 }
 
@@ -751,6 +757,7 @@ int GVDevice::unmap_buff()
                     }
             }
     }
+    mmaped = false;
     return ret;
 }
 
@@ -843,6 +850,7 @@ int GVDevice::set_format(std::string fourcc, int twidth, int theight)
     if (verbose) std::cout << "format index:" << format_index << std::endl;
     int res_index = get_res_index(format_index, twidth, theight);
     if (verbose) std::cout << "resolution index:" << res_index << std::endl;
+    int fps_ind = listVidFormats[format_index].listVidCap[res_index].fps.size() - 1;
     
     struct v4l2_format fmt;
     struct v4l2_buffer buf;
@@ -852,6 +860,8 @@ int GVDevice::set_format(std::string fourcc, int twidth, int theight)
     width = listVidFormats[format_index].listVidCap[res_index].width;
     height = listVidFormats[format_index].listVidCap[res_index].height;
     format = listVidFormats[format_index].format;
+    fps->num = listVidFormats[format_index].listVidCap[res_index].fps[fps_ind].num;
+    fps->denom = listVidFormats[format_index].listVidCap[res_index].fps[fps_ind].denom;
     
     fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     fmt.fmt.pix.width = width;
@@ -877,6 +887,8 @@ int GVDevice::set_format(std::string fourcc, int twidth, int theight)
         width = fmt.fmt.pix.width;
         height = fmt.fmt.pix.height;
     }
+    
+    set_framerate ();
     
     switch (method)
     {
@@ -917,7 +929,7 @@ int GVDevice::set_format(std::string fourcc, int twidth, int theight)
             if (queue_buff()) 
             {
                 //delete requested buffers
-                unmap_buff();
+                if(mmaped) unmap_buff();
                 memset(&rb, 0, sizeof(struct v4l2_requestbuffers));
                 rb.count = 0;
                 rb.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -1011,7 +1023,7 @@ int GVDevice::stream_off()
     return 0;
 }
 
-/* Grabs video frame and decodes it if necessary
+/* Grabs a video frame
  * args:
  *
  * returns: error code ( 0 - no error)
@@ -1026,10 +1038,10 @@ int GVDevice::grab_frame(UINT8* data)
     //make sure streaming is on
     if (!streaming)
         if (stream_on()) goto err;
-
+ 
     FD_ZERO(&rdset);
     FD_SET(fd, &rdset);
-    timeout.tv_sec = 1; // 2 sec timeout 
+    timeout.tv_sec = 1; // 1 sec timeout 
     timeout.tv_usec = 0;
     // select - wait for data or timeout
     ret = select(fd + 1, &rdset, NULL, NULL, &timeout);
@@ -1139,10 +1151,16 @@ err:
  *
  * returns: VIDIOC_S_PARM ioctl result value
 */
-int GVDevice::set_framerate ()
+int GVDevice::set_framerate (Fps_s* frate)
 {  
     int ret=0;
     struct v4l2_streamparm streamparm;
+    
+    if(frate)
+    {
+        fps->num = frate->num;
+        fps->denom = frate->denom;
+    }
     
     streamparm.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     streamparm.parm.capture.timeperframe.numerator = fps->num;
@@ -1156,7 +1174,7 @@ int GVDevice::set_framerate ()
     } 
 
     /*make sure we now have the correct fps*/
-    get_framerate ();
+    get_fps (frate);
 
     return ret;
 }
@@ -1166,7 +1184,7 @@ int GVDevice::set_framerate ()
  *
  * returns: a pointer to struct Fps_s
 */
-Fps_s* GVDevice::get_framerate ()
+bool GVDevice::get_fps (Fps_s* frate/* = NULL*/)
 {
     int ret=0;
     struct v4l2_streamparm streamparm;
@@ -1179,10 +1197,49 @@ Fps_s* GVDevice::get_framerate ()
     } 
     else 
     {
+        /*update instance fps value*/
         fps->denom = streamparm.parm.capture.timeperframe.denominator;
         fps->num = streamparm.parm.capture.timeperframe.numerator;
     }
-    return fps;
+    
+    if(frate)
+    {
+        frate->denom = fps->denom;
+        frate->num = fps->num;
+    }
+    
+    return true;
+}
+
+bool GVDevice::set_fps (Fps_s* frate/* = NULL*/)
+{
+    bool res = true;
+    if(streaming)
+    {
+        if(verbose) std::cout << " fps: streaming is on - delay\n";
+        if(frate)
+        {
+            fps->num = frate->num;
+            fps->denom = frate->denom;
+        }
+        setFPS=true; // delay until dequeue iteration
+    }
+    else if (mmaped) /*must unmap and requeue the buffers*/
+    {
+        if(verbose) std::cout << " fps: needs buffer requeuing\n";
+        unmap_buff();
+        if (set_framerate (frate) < 0)
+            res = false;
+        else
+        {
+            query_buff();
+            queue_buff();
+        }
+    }
+    else
+        res = ( set_framerate (frate) < 0 );
+    
+    return res;
 }
 
 size_t GVDevice::get_bytesused ()
