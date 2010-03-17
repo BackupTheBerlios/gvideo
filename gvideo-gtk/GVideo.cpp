@@ -349,8 +349,8 @@ int main (int argc, char *argv[])
         height = dev->get_height();
         if(verbose) cout << "format is " << format << " " << width << "x" << height << endl;
         
-        buf = new libgvideo::GVBuffer(format, width, height, 1, dev);
-        framebuf = buf->new_VidBuff(framebuf);
+        buf = new libgvideo::GVBuffer(dev, 1);
+        framebuf = new libgvideo::VidBuff;
         
         dev->stream_on();
         
@@ -405,15 +405,14 @@ int main (int argc, char *argv[])
         height = dev->get_height();
         if(verbose) cout << "format is " << format << " " << width << "x" << height << endl;
         
-        buf = new libgvideo::GVBuffer(format, width, height, 1, dev);
-        framebuf = buf->new_VidBuff(framebuf);
+        buf = new libgvideo::GVBuffer(dev, 1);
+        framebuf = new libgvideo::VidBuff;
         
         /*get a new audio instance*/
         if(!audio)
             audio = new libgvaudio::GVAudio(verbose);
         /*get a new audio buffer*/
-        libgvaudio::AudBuff *aud_buf;
-        aud_buf = audio->initBuff(aud_buf);
+        libgvaudio::AudBuff *aud_buf = new libgvaudio::AudBuff;
         
         /*get audio parameters*/
         int adev = audio->setDevice(options->opts->adevice);
@@ -542,7 +541,7 @@ int main (int argc, char *argv[])
         delete matroska;
         delete[] jpg_buff;
         delete jpeg;
-        audio->deleteBuff(aud_buf);
+        delete aud_buf;
     }
     
     if(options->opts->render)
@@ -556,7 +555,9 @@ int main (int argc, char *argv[])
         width = dev->get_width();
         height = dev->get_height();
         if(verbose) cout << "format is " << format << " " << width << "x" << height << endl;
-        buf = new libgvideo::GVBuffer(format, width, height, 1, dev);
+        
+        buf = new libgvideo::GVBuffer(dev, 1);
+        framebuf = new libgvideo::VidBuff;
         libgvrender::GVSdlRender * video = new libgvrender::GVSdlRender(width, height);
         cout << "on video window press:\n  Q to exit\n";
         cout << "  C to capture jpeg image\n";
@@ -622,7 +623,7 @@ int main (int argc, char *argv[])
     if(verbose) cout << "deleting options\n";
     delete options;
     if(verbose) cout << "deleting buf\n";
-    buf->delete_VidBuff(framebuf);
+    delete framebuf;
     delete buf;
     if(verbose) cout << "deleting audio\n";
     delete audio;

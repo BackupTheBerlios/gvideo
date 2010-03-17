@@ -36,8 +36,11 @@
 
 START_LIBGVIDEO_NAMESPACE
 
-struct VidBuff
+class VidBuff
 {
+  public:
+    VidBuff();
+    ~VidBuff();
     bool processed;
     int raw_size;
     UINT64 time_stamp;
@@ -67,12 +70,10 @@ class GVBuffer
     int alloc_frame_buff();
     
   public:
-    GVBuffer(int b_format=V4L2_PIX_FMT_MJPEG, int b_width=640, int b_height=480, int frame_buff_size=1, GVDevice *device=NULL);
+    GVBuffer(GVDevice *device, int frame_buff_size=1);
     ~GVBuffer();
-    VidBuff* new_VidBuff(VidBuff *frame);
-    void delete_VidBuff(VidBuff *frame);
-    int frame_decode(size_t size, int pix_order = -1);
-    int produce_nextFrame(int pix_order = -1);
+    int frame_decode(VidBuff *frame, int pix_order = -1);
+    int produce_nextFrame(int pix_order = -1, VidBuff *frame = NULL);
     int consume_nextFrame(VidBuff *frame);
 };
 

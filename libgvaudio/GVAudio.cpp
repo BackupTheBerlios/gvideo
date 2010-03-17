@@ -31,14 +31,32 @@
 
 START_LIBGVAUDIO_NAMESPACE
 
-GVAudio::GVAudio(bool _verbose /*=false*/)
+AudBuff::AudBuff()
+{
+    f_frame = NULL;
+    i_frame = NULL;
+    processed = true;
+    time_stamp = 0;
+    samples = 0;
+}
+
+AudBuff::~AudBuff()
+{
+    delete[] f_frame;
+    delete[] i_frame;
+}
+
+GVAudio::GVAudio(bool _verbose /*=false*/, int audio_buffers /*=AUDBUFF_SIZE*/)
 {
     int it = 0;
     int i = 0;
     int defId = 0;
     int defaultDisplayed = 0;
     const PaDeviceInfo *deviceInfo;
+    
     pthread_mutex_init( &mutex, NULL );
+    
+    maxIndex = audio_buffers;
     channels = 0;
     samprate = 0;
     int ch = 0;
@@ -47,6 +65,9 @@ GVAudio::GVAudio(bool _verbose /*=false*/)
     
     complete = false;
     streaming = false;
+    enabled = true;
+    stream_ready = false;
+    
     stream = NULL;
     sampleIndex = 0;
     max_samples = 0;
@@ -61,7 +82,7 @@ GVAudio::GVAudio(bool _verbose /*=false*/)
     int numDevices = Pa_GetDeviceCount();
     if( numDevices < 0 )
     {
-        std::cerr << "SOUND DISABLE: Pa_CountDevices returned" << numDevices << std::endl;
+        std::cerr << "libgvideo: SOUND DISABLE Pa_CountDevices returned " << numDevices << std::endl;
         enabled = false;
     } 
     else 
@@ -152,18 +173,12 @@ GVAudio::GVAudio(bool _verbose /*=false*/)
         if (verbose) std::cout << "----------------------------------------------\n";
     }
 
+    /* allocate when starting stream */
+    audio_buff = NULL;
     recordedSamples = NULL;
-    indDevice = defDevice; /* by default we the use default device :D */
+    /* by default we the use default device :D */
+    indDevice = defDevice;
     
-    audio_buff = new AudBuff[AUDBUFF_SIZE];
-    for (i=0; i<AUDBUFF_SIZE; i++)
-    {
-        audio_buff[i].processed = true;
-        audio_buff[i].f_frame = NULL;
-        audio_buff[i].i_frame = NULL;
-        audio_buff[i].time_stamp = 0;
-        audio_buff[i].samples = 0;
-    }
     pIndex = 0;
     cIndex = 0;   
 
@@ -180,11 +195,9 @@ GVAudio::~GVAudio()
         std::cerr << "Error: Pa_Terminate return error " << err << std::endl;
     if(verbose) std::cout << "removing samples\n";
     if (recordedSamples != NULL) delete[] recordedSamples;
-    for (i=0; i<AUDBUFF_SIZE; i++)
-    {
-        delete[] audio_buff[i].f_frame;
-        delete[] audio_buff[i].i_frame;
-    }
+    
+    pthread_mutex_destroy(&mutex);
+
     delete[] audio_buff;
 }
 
@@ -254,8 +267,15 @@ int GVAudio::stopStream()
     return ret;
 }
 
-int GVAudio::startStream(UINT64 timestamp_ref /*=0*/, int samp_rate/*=0*/, int chan/*=0*/, int frm_size/*=0*/)
+int GVAudio::startStream(int samp_rate/*=0*/, int chan/*=0*/, int frm_size/*=0*/, UINT64 timestamp_ref /*=0*/)
 {
+    stream_ready = false;
+    
+    if(!enabled)
+    {
+        std::cerr << "libgvaudio: can't start audio stream : audio is disabled \n";
+        return -1;
+    }
     int i=0;
     if(stream || streaming)
     {
@@ -289,11 +309,20 @@ int GVAudio::startStream(UINT64 timestamp_ref /*=0*/, int samp_rate/*=0*/, int c
     if(recordedSamples) delete[] recordedSamples;
     recordedSamples = new float[max_samples];
     
-    for ( i=0; i<AUDBUFF_SIZE; i++ )
-        audio_buff[i].f_frame = new float[max_samples];
+    if(audio_buff)
+    {
+        delete[] audio_buff;
+    }
     
+    audio_buff = new AudBuff[maxIndex];
+    
+    for ( i=0; i<maxIndex; i++ )
+    {
+        audio_buff[i].f_frame = new float[max_samples];
+        audio_buff[i].samples = max_samples;
+    }
     sampleIndex = 0;
-
+    
     //select device
     inputParameters.device = listAudioDev[indDevice].id;
     
@@ -317,12 +346,13 @@ int GVAudio::startStream(UINT64 timestamp_ref /*=0*/, int samp_rate/*=0*/, int c
                 this );                /* callback userData  */
 
     if( err != paNoError ) return (-1);
-
+    
     err = Pa_StartStream( stream );
     if( err != paNoError ) 
     {
         std::cerr << "Error opening audio stream, Pa_OpenStream returned error " << err << std::endl;
         streaming = false;
+        
         if(stream) Pa_AbortStream( stream );
         
         return -1;
@@ -330,6 +360,9 @@ int GVAudio::startStream(UINT64 timestamp_ref /*=0*/, int samp_rate/*=0*/, int c
     gvcommon::GVTime *timer = new gvcommon::GVTime;
     snd_begintime = timer->ns_time_monotonic();
     delete timer;
+    
+    stream_ready = true;
+    
     if(verbose) std::cout << "audio initial timecode:" << snd_begintime << std::endl;
     return 0;
 }
@@ -374,7 +407,7 @@ void GVAudio::fill_audio_buffer()
             audio_buff[pIndex].samples = max_samples;
             audio_buff[pIndex].processed = false;
             pIndex++;
-            if(pIndex >= AUDBUFF_SIZE)
+            if(pIndex >= maxIndex)
                 pIndex = 0;
         }    
         sampleIndex = 0; //reset
@@ -436,6 +469,12 @@ int GVAudio:: recordCallback (const void *inputBuffer, void *outputBuffer,
 //caller must clean buffer after consuming
 bool GVAudio::getNext(AudBuff *ab)
 {
+    if(!stream_ready)
+    {
+        std::cerr << "libgvideo: stream isn't ready \n";
+        return (false);
+    }
+    
     if(!(ab->f_frame))
             ab->f_frame = new float[max_samples];
     
@@ -449,7 +488,7 @@ bool GVAudio::getNext(AudBuff *ab)
         audio_buff[cIndex].processed = true;
         ab->processed = true;
         cIndex++;
-        if(cIndex >= AUDBUFF_SIZE)
+        if(cIndex >= maxIndex)
             cIndex = 0;
     }
     else
@@ -459,25 +498,6 @@ bool GVAudio::getNext(AudBuff *ab)
     pthread_mutex_unlock( &mutex );
     
     return (ab->processed);
-}
-
-AudBuff* GVAudio::initBuff(AudBuff *ab)
-{
-    ab = new AudBuff;
-    ab->f_frame = NULL;
-    ab->i_frame = NULL;
-    ab->processed = false;
-    ab->time_stamp = 0;
-    ab->samples = 0;
-    
-    return (ab);
-}
-
-void GVAudio::deleteBuff(AudBuff *ab)
-{
-    delete[] ab->f_frame;
-    delete[] ab->i_frame;
-    delete ab;
 }
 
 END_LIBGVAUDIO_NAMESPACE

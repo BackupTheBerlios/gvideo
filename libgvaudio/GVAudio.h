@@ -72,8 +72,11 @@ struct audioDevice
     double low_input_latency;
 };
 
-struct AudBuff
+class AudBuff
 {
+  public:
+    AudBuff();
+    ~AudBuff();
     bool processed;
     UINT64 time_stamp;
     float*  f_frame;
@@ -86,22 +89,22 @@ class GVAudio
     bool verbose;
     pthread_mutex_t mutex;
     int api; //0-Portaudio 1-pulse audio
-    bool enabled;
-    int defDevice; //index of default audio device
-    int indDevice; //index of audio device in use
+    bool enabled;                   // audio enabled disabled
+    bool stream_ready;               // stream ready flag
+    bool streaming;                 // audio streaming flag
+    bool complete;                  // flag callback to complete streaming
+    int defDevice;                  //index of default audio device
+    int indDevice;                  //index of audio device in use
     PaStreamParameters inputParameters;
     PaStream *stream;
     int channels;                   // channels
-    bool streaming;                 // audio streaming flag
-    bool complete;                  // flag callback to complete streaming
     int samprate;                   // samp rate
-    int numsec;                     // aprox. number of seconds for out buffer size
     int aud_numBytes;               // bytes copied to out buffer*/
     int aud_numSamples;             // samples copied to out buffer*/
     UINT64 snd_begintime;           // audio recording start time*/
-    int capVid;                     // video capture flag
     float *recordedSamples;         // callback frame buffer
     int frame_size;                 // audio frame size (def to mpg size =1152 samp per chan)
+    int maxIndex;                   // size of audio ring buffer
     int sampleIndex;                // callback frame buffer index
     int max_samples;                // recordedSamples buffer size
     AudBuff *audio_buff;            // ring buffer for audio data
@@ -109,11 +112,6 @@ class GVAudio
     int cIndex;                     // ring buffer consumer index;
     UINT64 time_stamp;              // audio frame time stamp
     UINT64 ts_ref;                  // timestamp sync reference
-    UINT16 *pcm_sndBuff;            // buffer for pcm coding with int16
-    int snd_Flags;                  // effects flag
-    int skip_n;                     // video frames to skip
-    UINT64 delay;                   // in nanosec - h264 has a two frame delay that must be compensated
-    //GMutex *mutex;                // audio mutex
     void fill_audio_buffer();
     INT16 clip_int16 (float in);
     
@@ -140,21 +138,18 @@ class GVAudio
     //PULSE SUPPORT
 #ifdef PULSEAUDIO
     pa_simple *pulse_simple;
-    //GThread *pulse_read_th;
 #endif
   public:
-    GVAudio(bool verbose=false);
+    GVAudio(bool verbose=false, int audio_buffers = AUDBUFF_SIZE);
     ~GVAudio();
-    void float_to_int16 (AudBuff *proc_buff);
     std::vector<audioDevice> listAudioDev;
+    void float_to_int16 (AudBuff *proc_buff);
     int setDevice(int index = -1);
     int getDevice();
     int stopStream();
-    int startStream(UINT64 timestamp_ref=0, int samp_rate=0, int chan=0, int frm_size=0);
+    int startStream(int samp_rate=0, int chan=0, int frm_size=0, UINT64 timestamp_ref=0);
     //caller must clean buffer after consuming by calling free_buff
     bool getNext(AudBuff* ab);
-    AudBuff* initBuff(AudBuff *ab);
-    void deleteBuff(AudBuff *ab);
 };
 
 END_LIBGVAUDIO_NAMESPACE

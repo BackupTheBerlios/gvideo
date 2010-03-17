@@ -27,6 +27,6 @@ lib_LTLIBRARIES= libgvideo.la
 libgvideo_la_SOURCES= $(h_sources) $(cpp_sources)
 libgvideo_la_CFLAGS = $(GVIDEOLIB_CFLAGS)
 libgvideo_la_LIBADD= $(GVIDEOLIB_LIBS)
-libgvideo_la_LDFLAGS= -version-info $(GVIDEO_LIBRARY_VERSION) -release $(GVIDEO_API_VERSION)
+libgvideo_la_LDFLAGS= -version-info $(GVIDEO_LIBRARY_VERSION) -release $(GVIDEO_API_VERSION) -lpthread
 
 

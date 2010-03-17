@@ -30,35 +30,42 @@
 #include <string.h> //memcpy
 #include "libgvideo/GVid_buff.h"
 
-
 START_LIBGVIDEO_NAMESPACE
 
-//constructor
-GVBuffer::GVBuffer(int b_format, int b_width, int b_height, int frame_buff_size, GVDevice *device)
+VidBuff::VidBuff ()
 {
-    int i = 0;
-    format = b_format;
-    width = b_width;
-    height = b_height;
-    _frame_buff_size = frame_buff_size;
-    
+    raw_frame = NULL;
+    yuv_frame = NULL;
+    time_stamp = 0;
+    raw_size = 0;
+    processed = true;
+}
+
+VidBuff::~VidBuff()
+{
+    delete[] raw_frame;
+    delete[] yuv_frame;
+}
+
+//constructor
+GVBuffer::GVBuffer(GVDevice *device, int frame_buff_size)
+{
     dev=device;
     
+    format = dev->get_format();
+    width = dev->get_width();
+    height = dev->get_height();
+    _frame_buff_size = frame_buff_size;
+    
+    pthread_mutex_init( &mutex, NULL );
+    
     frameBuff = new VidBuff[frame_buff_size];
-    for(i=0; i< _frame_buff_size;i++)
-    {
-        frameBuff[i].raw_frame = NULL;
-        frameBuff[i].yuv_frame = NULL;
-        frameBuff[i].time_stamp = 0;
-        frameBuff[i].processed = true;
-    }
+    
     pIndex = 0;
     cIndex = 0;
     conversor = new GVConvert;
     jpgdec = new GVMjpgDec;
     
-    //raw_data = NULL;
-    //frame_data = NULL;
     tmp_data = NULL;
     
     alloc_frame_buff();
@@ -67,18 +74,13 @@ GVBuffer::GVBuffer(int b_format, int b_width, int b_height, int frame_buff_size,
 //destructor
 GVBuffer::~GVBuffer()
 {
-    int i = 0;        
-    for(i=0; i< _frame_buff_size;i++)
-    {
-        delete[] frameBuff[i].raw_frame;
-        delete[] frameBuff[i].yuv_frame;
-    }
+    int i = 0;
     delete[] frameBuff;
-    //delete[] raw_data;
-    //delete[] frame_data;
     delete[] tmp_data;
     delete conversor;
     delete jpgdec;
+    
+    pthread_mutex_destroy(&mutex);
 }
 
 int GVBuffer::alloc_frame_buff()
@@ -150,51 +152,24 @@ int GVBuffer::alloc_frame_buff()
             break;
     }
     
-    //raw_data = new UINT8 [_raw_size];
-    //frame_data = new UINT8 [_yuv_size];
     for(i=0; i<_frame_buff_size; i++)
     {
+        frameBuff[i].raw_size = _raw_size;
         frameBuff[i].raw_frame = new UINT8 [_raw_size];
         frameBuff[i].yuv_frame = new UINT8 [_yuv_size];
         int j = 0;
         /*set yuv frame to black (y=0x00 u=0x80 v=0x80) by default*/
         for (j=0; j<(_yuv_size-4); j+=4)
         {
-            frameBuff[i].yuv_frame[j]=0x00;  //Y
+            frameBuff[i].yuv_frame[j]  =0x00;//Y
             frameBuff[i].yuv_frame[j+1]=0x80;//U
             frameBuff[i].yuv_frame[j+2]=0x00;//Y
             frameBuff[i].yuv_frame[j+3]=0x80;//V
         }
     }
 
-    // if ((!frame_data) || (_yuv_size <=0)) 
-    // {
-        // std::cerr << "couldn't allocate "<< _yuv_size 
-            // << "bytes of memory for frame buffer\n";
-        // ret = -3;
-        // goto error;
-    // } 
-    // else
-    // {
-        // int i = 0;
-        // /*set frame_data to black (y=0x00 u=0x80 v=0x80) by default*/
-        // for (i=0; i<(_yuv_size-4); i+=4)
-        // {
-            // frame_data[i]=0x00;  //Y
-            // frame_data[i+1]=0x80;//U
-            // frame_data[i+2]=0x00;//Y
-            // frame_data[i+3]=0x80;//V
-        // }
-    // }
     return (ret);
 error:
-    for(i=0; i<_frame_buff_size; i++)
-    {
-        delete[] frameBuff[i].raw_frame;
-        delete[] frameBuff[i].yuv_frame;
-    }
-    //delete[] frame_data;
-    //delete[] raw_data;
 
     return (ret);
 }
@@ -203,12 +178,19 @@ error:
  * args:
  * returns: error code ( 0 )
 */
-int GVBuffer::frame_decode(size_t size, int pix_order)
+int GVBuffer::frame_decode(VidBuff *frame, int pix_order/*=-1*/)
 {
     int ret = 0;
     int framesizeIn =(width * height << 1);//2 bytes per pixel
-    UINT8 * frame_data = frameBuff[pIndex].yuv_frame;
-    UINT8 * raw_data = frameBuff[pIndex].raw_frame;
+    UINT8 * frame_data = frame->yuv_frame;
+    UINT8 * raw_data = frame->raw_frame;
+    size_t size = frame->raw_size;
+    
+    if(size <= 0)
+    {
+        std::cerr << "libgvideo: raw frame with size 0\n";
+        return( -1);
+    }
     
     switch (format) 
     {
@@ -224,8 +206,7 @@ int GVBuffer::frame_decode(size_t size, int pix_order)
             if (jpgdec->decode(&frame_data, raw_data, width, height) < 0) 
             {
                 std::cerr << "jpeg decode errors\n";
-                ret = -1;
-                goto err;
+                return (-1);
             }
             break;
 
@@ -333,17 +314,14 @@ int GVBuffer::frame_decode(size_t size, int pix_order)
             break;
 
         default:
-            std::cerr << "error grabbing (v4l2uvc.c) unknown format:" << format << std::endl;
-            ret = -1;
-            goto err;
+            std::cerr << "libgvideo: unknown format for decoding:" << format << std::endl;
+            return (-1);
             break;
     }
     return ret;
-err:
-    return ret;
 };
 
-int GVBuffer::produce_nextFrame(int pix_order)
+int GVBuffer::produce_nextFrame(int pix_order/*=-1*/, VidBuff *frame/*=NULL*/)
 {
     if(!dev)
     {
@@ -351,88 +329,80 @@ int GVBuffer::produce_nextFrame(int pix_order)
         return -1;
     }
     
+    pthread_mutex_lock( &mutex );
     if(frameBuff[pIndex].processed)
     {
         if(dev->grab_frame(frameBuff[pIndex].raw_frame) < 0)
             return -1;
-            
+        
         frameBuff[pIndex].raw_size = dev->get_bytesused();
-        frame_decode(frameBuff[pIndex].raw_size, pix_order);
+        frame_decode(&(frameBuff[pIndex]), pix_order);
         frameBuff[pIndex].time_stamp = dev->get_timestamp();
+        
         frameBuff[pIndex].processed = false;
         
+        /* get a copy of the grabed frame if requested (frame!=NULL) */
+        /* must still consume the frame or the buffer will overflow  */
+        if(frame)
+        {
+            if(!(frame->raw_frame))
+                frame->raw_frame = new UINT8 [_raw_size];
+            
+            if(!(frame->yuv_frame))
+                frame->yuv_frame = new UINT8 [_yuv_size];
+            
+            memcpy(frame->raw_frame, frameBuff[pIndex].raw_frame, frameBuff[pIndex].raw_size);
+            memcpy(frame->yuv_frame, frameBuff[pIndex].yuv_frame, _yuv_size);
+            frame->time_stamp = frameBuff[pIndex].time_stamp;
+        }
+        
         pIndex++;
-    }
-    else
-    {
-        std::cerr << "buff: no buffer slot available\n";
-        return -1;
-    }
-        
-    if(pIndex >= _frame_buff_size)
+        if(pIndex >= _frame_buff_size)
         pIndex = 0;
+        pthread_mutex_unlock( &mutex );
         
-    return 0;
+        return 0;
+    }
+    
+    pthread_mutex_unlock( &mutex );
+    std::cerr << "libgvideo: no buffer slot available (consume a frame first)\n";
+    return -1;
 }
 
 int GVBuffer::consume_nextFrame(VidBuff *frame)
 {
     if(!frame)
     {
-        std::cerr << "buff error: no Video Buffer allocated (NULL)\n";
+        std::cerr << "libgvideo: no Video Buffer allocated (NULL)\n";
         return -1;
     }
     
     if(!(frame->raw_frame))
-    {
         frame->raw_frame = new UINT8 [_raw_size];
-    }
+    
     if(!(frame->yuv_frame))
-    {
         frame->yuv_frame = new UINT8 [_yuv_size];
-    }
     
-    
+    pthread_mutex_lock( &mutex );
     if(!(frameBuff[cIndex].processed))
     {
         memcpy(frame->raw_frame, frameBuff[cIndex].raw_frame, frameBuff[cIndex].raw_size);
         memcpy(frame->yuv_frame, frameBuff[cIndex].yuv_frame, _yuv_size);
         frame->time_stamp = frameBuff[cIndex].time_stamp;
-    
+        
         frameBuff[cIndex].processed = true;
-    
+        
         cIndex++;
-    }
-    else
-    {
-        std::cerr << "buff: no frame available yet\n";
-        return -1;
-    }
-    
-    if(cIndex >= _frame_buff_size)
+        if(cIndex >= _frame_buff_size)
         cIndex = 0;
+        pthread_mutex_unlock( &mutex );
+        
+        return 0;
+    }
     
-    return 0;
+    pthread_mutex_unlock( &mutex );
+    std::cerr << "libgvideo: no frame available yet (produce a frame first)\n";
+    return -1;
 }
-
-VidBuff* GVBuffer::new_VidBuff(VidBuff *frame)
-{
-    frame = new VidBuff;
-    frame->raw_frame = NULL;
-    frame->yuv_frame = NULL;
-    frame->time_stamp = 0;
-    frame->raw_size = _raw_size;
-    frame->processed = true;
-    
-    return (frame);
-}
-
-void GVBuffer::delete_VidBuff(VidBuff *frame)
-{
-    delete[] frame->raw_frame;
-    delete[] frame->yuv_frame;
-    delete frame;
-}
-
 
 END_LIBGVIDEO_NAMESPACE
