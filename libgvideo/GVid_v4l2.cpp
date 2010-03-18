@@ -39,14 +39,19 @@
 START_LIBGVIDEO_NAMESPACE
 
 /*constructors*/
+GVFps::GVFps()
+{
+    /*use 1/25 as default*/
+    num = 1;
+    denom = 25;
+}
+
 GVDevice::GVDevice(std::string device_name /*= "/dev/video0"*/, bool verbosity /*= false*/)
 {
     int i = 0;
     verbose = verbosity;
     buff_index = 0;
-    fps = new Fps_s;
-    fps->num = 1;
-    fps->denom = 25;
+    fps = new GVFps;
     time = new gvcommon::GVTime;
     
     if(device_name.size() > 0)
@@ -1151,7 +1156,7 @@ err:
  *
  * returns: VIDIOC_S_PARM ioctl result value
 */
-int GVDevice::set_framerate (Fps_s* frate)
+int GVDevice::set_framerate (GVFps* frate)
 {  
     int ret=0;
     struct v4l2_streamparm streamparm;
@@ -1179,12 +1184,10 @@ int GVDevice::set_framerate (Fps_s* frate)
     return ret;
 }
 
-/* gets video device defined frame rate (not real - consider it a maximum value)
- * args:
- *
- * returns: a pointer to struct Fps_s
+/* 
+ * gets video device defined frame rate (not real - consider it a maximum value)
 */
-bool GVDevice::get_fps (Fps_s* frate/* = NULL*/)
+bool GVDevice::get_fps (GVFps* frate/* = NULL*/)
 {
     int ret=0;
     struct v4l2_streamparm streamparm;
@@ -1211,7 +1214,7 @@ bool GVDevice::get_fps (Fps_s* frate/* = NULL*/)
     return true;
 }
 
-bool GVDevice::set_fps (Fps_s* frate/* = NULL*/)
+bool GVDevice::set_fps (GVFps* frate/* = NULL*/)
 {
     bool res = true;
     if(streaming)

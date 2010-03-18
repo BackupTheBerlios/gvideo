@@ -333,8 +333,10 @@ int GVBuffer::produce_nextFrame(int pix_order/*=-1*/, VidBuff *frame/*=NULL*/)
     if(frameBuff[pIndex].processed)
     {
         if(dev->grab_frame(frameBuff[pIndex].raw_frame) < 0)
+        {
+             pthread_mutex_unlock( &mutex );
             return -1;
-        
+        }
         frameBuff[pIndex].raw_size = dev->get_bytesused();
         frame_decode(&(frameBuff[pIndex]), pix_order);
         frameBuff[pIndex].time_stamp = dev->get_timestamp();

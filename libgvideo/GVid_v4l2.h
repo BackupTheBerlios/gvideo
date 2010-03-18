@@ -41,8 +41,10 @@
 
 START_LIBGVIDEO_NAMESPACE
 
-struct Fps_s
+class GVFps
 {
+  public:
+    GVFps();
     int num;
     int denom;
 };
@@ -51,7 +53,7 @@ struct VidCap
 {
     int width;            //width 
     int height;           //height
-    std::vector<Fps_s> fps;    //list of fps values
+    std::vector<GVFps> fps;    //list of fps values
 };
 
 struct VidFormats
@@ -79,7 +81,7 @@ class GVDevice
     bool streaming; //flag if video stream is on
     bool mmaped;
     bool setFPS; //flag fps change
-    struct Fps_s *fps;
+    GVFps *fps;
     int fd;
     int width;
     int height;
@@ -118,7 +120,7 @@ class GVDevice
     int query_buff();
     int queue_buff();
     int alloc_frame_buff();
-    int set_framerate(Fps_s* frate = NULL);
+    int set_framerate(GVFps* frate = NULL);
     
   public:
     std::vector<VidFormats> listVidFormats; //list of supported Pixel Formats;
@@ -135,16 +137,14 @@ class GVDevice
     int get_format();
     int get_width();
     int get_height();
-    bool get_fps(Fps_s* frate = NULL);
-    bool set_fps(Fps_s* frate);
+    bool get_fps(GVFps* frate = NULL);
+    bool set_fps(GVFps* frate);
     int get_framecount();
     UINT64 get_timestamp();
     int stream_on();
     int stream_off();
     int grab_frame(UINT8* data);
     size_t get_bytesused();
-    
-
 };
 
 END_LIBGVIDEO_NAMESPACE

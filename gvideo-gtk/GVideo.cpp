@@ -196,7 +196,7 @@ int main (int argc, char *argv[])
     UINT64 timestamp = 0;
     string fourcc;
     int width, height;
-    libgvideo::Fps_s* fps = new libgvideo::Fps_s;
+    libgvideo::GVFps* fps = new libgvideo::GVFps;
     gvcommon::GVString* gvstr = new gvcommon::GVString;
     //parse command line options
     vector<libgvideo::GV_options> opts;
@@ -331,13 +331,16 @@ int main (int argc, char *argv[])
     
     if(options->opts->fps > 0) 
     { 
+        fps->num = 1;
         fps->denom = options->opts->fps;
+        if (verbose) cout << "trying to set fps to " << fps->num << "/" << fps->denom << endl;
         dev->set_fps(fps);
     }
     else
     {
-        fps->denom = 25;
-        fps->num = 1;
+        /* use default fps */
+        if (verbose) cout << "trying to set fps to " << fps->num << "/" << fps->denom << endl;
+        dev->set_fps(fps);
     }
     
     if(options->opts->picture.size() > 0)
@@ -471,7 +474,7 @@ int main (int argc, char *argv[])
         UINT64 ats = 0;
         /*try to get the first video frame and use it's timestamp as reference*/
         /* so that we start at timestamp=0*/
-        while ((buf->produce_nextFrame() < 0) && (count < 10))
+        while ((buf->produce_nextFrame() < 0) && (count < 15))
         {
             count++;
             cout << "loop count: " << count << endl;
@@ -482,7 +485,8 @@ int main (int argc, char *argv[])
         UINT64 vid_start_time = timer->ns_time_monotonic();
         delete timer; 
         
-        if(count < 10)
+        if(verbose) cout << "vid start=" << vid_start_time << endl;
+        if(count < 15)
         {
             buf->consume_nextFrame(framebuf);
             timestamp_f0 = framebuf->time_stamp;
@@ -490,6 +494,15 @@ int main (int argc, char *argv[])
             
             size = jpeg->encode (framebuf->yuv_frame, jpg_buff, false);
             matroska->add_VideoFrame(jpg_buff, size, vts);
+        }
+        else
+        {
+            /*clean up*/
+            delete matroska;
+            delete[] jpg_buff;
+            delete jpeg;
+            delete aud_buf;
+            goto finish;
         }
         
         if(verbose) cout << "ref ts=" << timestamp_f0 << endl;
@@ -519,6 +532,7 @@ int main (int argc, char *argv[])
             {
                 buf->consume_nextFrame(framebuf);
                 vts = framebuf->time_stamp - timestamp_f0;
+                //if (verbose) cout << "vts:" << vts << " max:" << (UINT64) options->opts->vcaptime * GV_NSEC_PER_SEC << endl;
                 if( vts > ((UINT64) options->opts->vcaptime * GV_NSEC_PER_SEC))
                 {
                     /*we already captured the defined amount of time so let's finish*/
