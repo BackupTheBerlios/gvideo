@@ -52,6 +52,8 @@ GVDevice::GVDevice(std::string device_name /*= "/dev/video0"*/, bool verbosity /
     verbose = verbosity;
     buff_index = 0;
     fps = new GVFps;
+    /* use automatic fps detection*/
+    fps->num = 0;
     time = new gvcommon::GVTime;
     
     if(device_name.size() > 0)
@@ -855,7 +857,6 @@ int GVDevice::set_format(std::string fourcc, int twidth, int theight)
     if (verbose) std::cout << "format index:" << format_index << std::endl;
     int res_index = get_res_index(format_index, twidth, theight);
     if (verbose) std::cout << "resolution index:" << res_index << std::endl;
-    int fps_ind = listVidFormats[format_index].listVidCap[res_index].fps.size() - 1;
     
     struct v4l2_format fmt;
     struct v4l2_buffer buf;
@@ -865,8 +866,12 @@ int GVDevice::set_format(std::string fourcc, int twidth, int theight)
     width = listVidFormats[format_index].listVidCap[res_index].width;
     height = listVidFormats[format_index].listVidCap[res_index].height;
     format = listVidFormats[format_index].format;
-    fps->num = listVidFormats[format_index].listVidCap[res_index].fps[fps_ind].num;
-    fps->denom = listVidFormats[format_index].listVidCap[res_index].fps[fps_ind].denom;
+    
+    if(!fps->num)
+    {
+        fps->num = listVidFormats[format_index].listVidCap[res_index].fps[0].num;
+        fps->denom = listVidFormats[format_index].listVidCap[res_index].fps[0].denom;
+    }
     
     fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     fmt.fmt.pix.width = width;
@@ -893,7 +898,8 @@ int GVDevice::set_format(std::string fourcc, int twidth, int theight)
         height = fmt.fmt.pix.height;
     }
     
-    set_framerate ();
+    if(fps->num > 0)
+        set_framerate ();
     
     switch (method)
     {
@@ -1179,8 +1185,15 @@ int GVDevice::set_framerate (GVFps* frate)
     } 
 
     /*make sure we now have the correct fps*/
-    get_fps (frate);
+    get_fps (fps);
+    if(verbose) std::cout << "framerate=" << fps->num << "/" << fps->denom << std::endl;
 
+    if(frate)
+    {
+        frate->num = fps->num;
+        frate->denom = fps->denom;
+    }
+    
     return ret;
 }
 
