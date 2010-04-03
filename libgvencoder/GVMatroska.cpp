@@ -232,7 +232,7 @@ GVMatroska::GVMatroska(const char* filename,
                        INT64 _timescale,
                        unsigned width, unsigned height,
                        unsigned d_width, unsigned d_height,
-                       float SampRate, int channels, int bitsSample,
+                       int samprate, int channels, int bitsSample,
                        bool _verbose /*= false*/)
 {
     verbose = _verbose;
@@ -259,6 +259,7 @@ GVMatroska::GVMatroska(const char* filename,
     actlist = NULL;
     cues = NULL;
     
+    float SampRate = float(1.0 * samprate);
     
     root = mk_createContext(NULL, 0);
     if (!root)

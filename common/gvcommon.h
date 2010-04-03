@@ -60,6 +60,9 @@ typedef uint64_t   UINT64;
 #define START_LIBGVRENDER_NAMESPACE namespace libgvrender {
 #define END_LIBGVRENDER_NAMESPACE };
 
+//audio frame defs
+#define MPG_NUM_SAMP 1152  //number of samples in a audio buffer (MPEG frame) 
+#define DEF_AUD_FRAME_SIZE MPG_NUM_SAMP*4
 
 /*clip value between 0 and 255*/
 #define CLIP(value) (UINT8)(((value)>0xFF)?0xff:(((value)<0)?0:(value)))

@@ -26,33 +26,44 @@
 ********************************************************************************/
 
 #include <libgvencoder/GVCodec.h>
+#include <string.h>
 #include <iostream>
 
 START_LIBGVENCODER_NAMESPACE
 
-GVCodec::GVCodec(int width, int height, int fps_denom/*=15*/, int fps_num/*=1*/)
+GVCodec::GVCodec()
 {
     // must be called before using avcodec lib
-	avcodec_init();
+    avcodec_init();
 
-	// register all the codecs (you can also register only the codec
-	//you wish to have smaller code
-	avcodec_register_all();
-	
+    // register all the codecs (you can also register only the codec
+    //you wish to have smaller code
+    avcodec_register_all();
+
     vcodec_context = NULL;
     vcodec = NULL;
     picture= NULL;
     jpeg = NULL;
     tmpbuf = NULL;
-    out = NULL;
+    video_out = NULL;
+    audio_out = NULL;
+    // set the default codec index to 0
+    vcodec_index = 0;
+    acodec_index = 0;
+    audio_frame_size = 0;
+    _video_buff_size = 0;
+    _audio_buff_size = 0;
     
+    acodec_context = NULL;
+    
+    /*video codecs*/
     mkv_codecPriv.biSize = 0x00000028; //40 bytes 
-    mkv_codecPriv.biWidth = width;       //default values (must be set before use)
-    mkv_codecPriv.biHeight = height; 
+    mkv_codecPriv.biWidth = 640;       //default values 
+    mkv_codecPriv.biHeight = 480; 
     mkv_codecPriv.biPlanes = 1; 
     mkv_codecPriv.biBitCount = 24; 
     mkv_codecPriv.biCompression = V4L2_PIX_FMT_MJPEG; 
-    mkv_codecPriv.biSizeImage = width*height*2; //2 bytes per pixel (max buffer - use x3 for RGB)
+    mkv_codecPriv.biSizeImage = 640*480*2; //2 bytes per pixel (max buffer - use x3 for RGB)
     mkv_codecPriv.biXPelsPerMeter = 0; 
     mkv_codecPriv.biYPelsPerMeter = 0; 
     mkv_codecPriv.biClrUsed = 0; 
@@ -68,12 +79,6 @@ GVCodec::GVCodec(int width, int height, int fps_denom/*=15*/, int fps_num/*=1*/)
     {
         false, true, "YUY2", v4l2_fourcc('Y','U','Y','2'), "V_MS/VFW/FOURCC", &mkv_codecPriv, 40,
         "YUY2 - uncomp YUV", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        CODEC_ID_NONE, 0, 0, 0, 0, 0, 0
-    } );
-    vcodec_list.push_back( (GVCodec_vdata)
-    {
-        false, true, "RGB ", v4l2_fourcc('R','G','B',' '), "V_MS/VFW/FOURCC", &mkv_codecPriv, 40,
-        "RGB - uncomp BMP", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         CODEC_ID_NONE, 0, 0, 0, 0, 0, 0
     } );
     
@@ -142,12 +147,70 @@ GVCodec::GVCodec(int width, int height, int fps_denom/*=15*/, int fps_num/*=1*/)
     else
         std::cerr << "libgvencoder: ffmpeg CODEC_ID_H264 missing\n";
     
-    // set the default codec index to 0
-    codec_index = 0;
-    _fps_denom = fps_denom;
-    _fps_num = fps_num;
+    /*Audio codecs*/
+    AAC_OBJ_TYPE[0]=FF_PROFILE_UNKNOWN;
+    AAC_OBJ_TYPE[1]=FF_PROFILE_AAC_MAIN;
+    AAC_OBJ_TYPE[2]=FF_PROFILE_AAC_LOW;
+    AAC_OBJ_TYPE[3]=FF_PROFILE_AAC_SSR;
+    AAC_OBJ_TYPE[4]=FF_PROFILE_AAC_LTP;
     
-    _buff_size = 0;
+    AAC_SAMP_FREQ[0]= 96000;
+    AAC_SAMP_FREQ[1]= 88200;
+    AAC_SAMP_FREQ[2]= 64000;
+    AAC_SAMP_FREQ[3]= 48000;
+    AAC_SAMP_FREQ[4]= 44100;
+    AAC_SAMP_FREQ[5]= 32000;
+    AAC_SAMP_FREQ[6]= 24000;
+    AAC_SAMP_FREQ[7]= 22050;
+    AAC_SAMP_FREQ[8]= 16000;
+    AAC_SAMP_FREQ[9]= 12000;
+    AAC_SAMP_FREQ[10]= 11025;
+    AAC_SAMP_FREQ[11]= 8000;
+    AAC_SAMP_FREQ[12]= 7350;
+    AAC_SAMP_FREQ[13]= -1;
+    AAC_SAMP_FREQ[14]= -1;
+    AAC_SAMP_FREQ[15]= 0;
+    
+    AAC_ESDS[0]= 0x0A;
+    AAC_ESDS[1]= 0x10;
+    
+    acodec_list.push_back( (GVCodec_adata)
+    {
+        false, true, 16, WAVE_FORMAT_PCM, "A_PCM/INT/LIT", "PCM - uncompressed (16 bit)",
+        0, CODEC_ID_PCM_S16LE, FF_PROFILE_UNKNOWN, NULL, 0, 0
+    } );
+    if(avcodec_find_encoder(CODEC_ID_MP2))
+        acodec_list.push_back( (GVCodec_adata)
+        {
+            true, true, 0, WAVE_FORMAT_MPEG12, "A_MPEG/L2", "MPEG2 - (lavc)",
+            160000, CODEC_ID_MP2, FF_PROFILE_UNKNOWN, NULL, 0, 0
+        } );
+    else
+        std::cerr << "libgvencoder: ffmpeg CODEC_ID_MP2 missing\n";
+    if(avcodec_find_encoder(CODEC_ID_MP3))
+        acodec_list.push_back( (GVCodec_adata)
+        {
+            true, true, 0, WAVE_FORMAT_MP3, "A_MPEG/L3", "MPEG3 - (lavc)",
+            160000, CODEC_ID_MP3, FF_PROFILE_UNKNOWN, NULL, 0, 0
+        } );
+    else
+        std::cerr << "libgvencoder: ffmpeg CODEC_ID_MP3 missing\n";
+    if(avcodec_find_encoder(CODEC_ID_AC3))
+        acodec_list.push_back( (GVCodec_adata)
+        {
+            true, true, 0, WAVE_FORMAT_AC3, "A_AC3", "Dolby AC3 - (lavc)",
+            160000, CODEC_ID_AC3, FF_PROFILE_UNKNOWN, NULL, 0, 0
+        } );
+    else
+        std::cerr << "libgvencoder: ffmpeg CODEC_ID_AC3 missing\n";
+    if(avcodec_find_encoder(CODEC_ID_AAC))
+        acodec_list.push_back( (GVCodec_adata)
+        {
+            true, true, 16, WAVE_FORMAT_AAC, "A_AAC", "ACC Low - (faac)",
+            64000, CODEC_ID_AAC, FF_PROFILE_AAC_LOW, AAC_ESDS, 2, 0
+        } );
+    else
+        std::cerr << "libgvencoder: ffmpeg CODEC_ID_AAC missing\n";
 }
 
 GVCodec::~GVCodec()
@@ -160,87 +223,117 @@ GVCodec::~GVCodec()
         //free codec context 
         free(vcodec_context);
     }
+    if(acodec_context)
+    {
+        avcodec_flush_buffers(acodec_context);
+        //close codec 
+        avcodec_close(acodec_context);
+        //free codec context 
+        free(acodec_context);
+    }
     if(picture) free(picture);
     if(tmpbuf) delete[] tmpbuf;
 }
 
-bool GVCodec::open_vcodec(unsigned codec_ind, UINT8 *out_buff, unsigned buff_size)
+bool GVCodec::open_vcodec(unsigned codec_ind, 
+                          UINT8 *out_buff, 
+                          unsigned buff_size,
+                          int width,
+                          int height,
+                          int fps_denom/*=15*/, 
+                          int fps_num/*=1*/)
 {
-    out = out_buff;
-    _buff_size = buff_size;
-    
     if (codec_ind >= vcodec_list.size())
     {
-        std::cerr << "libgvencoder: codec index not valid [2-" << vcodec_list.size()-1 << "]\n";
+        std::cerr << "libgvencoder: codec index not valid [0-" << vcodec_list.size()-1 << "]\n";
         return (false);
     }
-    if(codec_ind == 0)
+    
+    vcodec_index = codec_ind;
+    video_out = out_buff;
+    _video_buff_size = buff_size;
+    
+    /*sets the matroska codec private data if required*/
+    if((vcodec_list[vcodec_index].codecPriv != NULL) && (vcodec_list[vcodec_index].codecPriv_size > 0))
     {
-        jpeg = new GVJpeg(mkv_codecPriv.biWidth, mkv_codecPriv.biHeight);
+        mkv_codecPriv.biWidth = width;
+        mkv_codecPriv.biHeight = height;
+        mkv_codecPriv.biCompression = vcodec_list[vcodec_index].fourcc;
+        if(vcodec_index == 2)
+            mkv_codecPriv.biSizeImage = width * height * 3; /*rgb*/
+        else
+            mkv_codecPriv.biSizeImage = width * height * 2;
     }
-    else if (codec_ind > 2) /* 0, 1 and 2 are built-in codecs*/
+
+    if(vcodec_index == 0)
+    {
+        jpeg = new GVJpeg(width, height);
+    }
+    else if (vcodec_index > 1) /* 0 and 1 are built-in codecs*/
     {
         //alloc picture
         picture= avcodec_alloc_frame();
         //alloc tmpbuff (yuv420p)
-        tmpbuf = new UINT8 [(mkv_codecPriv.biWidth * mkv_codecPriv.biHeight*3)/2];
+        tmpbuf = new UINT8 [(width * height*3)/2];
         
-        vcodec = avcodec_find_encoder(vcodec_list[codec_ind].codec_id);
+        vcodec = avcodec_find_encoder(vcodec_list[vcodec_index].codec_id);
         if (!vcodec) 
         {
             std::cerr << "libgvencoder: " 
-                << vcodec_list[codec_ind].compressor << " codec not found\n";
+                << vcodec_list[vcodec_index].compressor << " codec not found\n";
             return(false);
         }
         
         //alloc context
         vcodec_context = avcodec_alloc_context();
         // resolution must be a multiple of two
-        vcodec_context->width = mkv_codecPriv.biWidth; 
-        vcodec_context->height = mkv_codecPriv.biHeight;
+        vcodec_context->width = width; 
+        vcodec_context->height = height;
         
-        vcodec_context->bit_rate = vcodec_list[codec_ind].bit_rate;
-        vcodec_context->flags |= vcodec_list[codec_ind].flags;
+        vcodec_context->bit_rate = vcodec_list[vcodec_index].bit_rate;
+        vcodec_context->flags |= vcodec_list[vcodec_index].flags;
         /* 
          * mb_decision
          *0 (FF_MB_DECISION_SIMPLE) Use mbcmp (default).
          *1 (FF_MB_DECISION_BITS)   Select the MB mode which needs the fewest bits (=vhq).
          *2 (FF_MB_DECISION_RD)     Select the MB mode which has the best rate distortion.
          */
-        vcodec_context->mb_decision = vcodec_list[codec_ind].mb_decision;
+        vcodec_context->mb_decision = vcodec_list[vcodec_index].mb_decision;
         /*use trellis quantization*/
-        vcodec_context->trellis = vcodec_list[codec_ind].trellis;
+        vcodec_context->trellis = vcodec_list[vcodec_index].trellis;
 
         //motion estimation method epzs
-        vcodec_context->me_method = vcodec_list[codec_ind].me_method; 
+        vcodec_context->me_method = vcodec_list[vcodec_index].me_method; 
 
-        vcodec_context->dia_size = vcodec_list[codec_ind].dia;
-        vcodec_context->pre_dia_size = vcodec_list[codec_ind].pre_dia;
-        vcodec_context->pre_me = vcodec_list[codec_ind].pre_me;
-        vcodec_context->me_pre_cmp = vcodec_list[codec_ind].me_pre_cmp;
-        vcodec_context->me_cmp = vcodec_list[codec_ind].me_cmp;
-        vcodec_context->me_sub_cmp = vcodec_list[codec_ind].me_sub_cmp;
-        vcodec_context->me_subpel_quality = vcodec_list[codec_ind].subq; //NEW
-        vcodec_context->refs = vcodec_list[codec_ind].framerefs;         //NEW
-        vcodec_context->last_predictor_count = vcodec_list[codec_ind].last_pred;
+        vcodec_context->dia_size = vcodec_list[vcodec_index].dia;
+        vcodec_context->pre_dia_size = vcodec_list[vcodec_index].pre_dia;
+        vcodec_context->pre_me = vcodec_list[vcodec_index].pre_me;
+        vcodec_context->me_pre_cmp = vcodec_list[vcodec_index].me_pre_cmp;
+        vcodec_context->me_cmp = vcodec_list[vcodec_index].me_cmp;
+        vcodec_context->me_sub_cmp = vcodec_list[vcodec_index].me_sub_cmp;
+        vcodec_context->me_subpel_quality = vcodec_list[vcodec_index].subq; //NEW
+        vcodec_context->refs = vcodec_list[vcodec_index].framerefs;         //NEW
+        vcodec_context->last_predictor_count = vcodec_list[vcodec_index].last_pred;
 
-        vcodec_context->mpeg_quant = vcodec_list[codec_ind].mpeg_quant; //h.263
-        vcodec_context->qmin = vcodec_list[codec_ind].qmin;             // best detail allowed - worst compression
-        vcodec_context->qmax = vcodec_list[codec_ind].qmax;             // worst detail allowed - best compression
-        vcodec_context->max_qdiff = vcodec_list[codec_ind].max_qdiff;
-        vcodec_context->max_b_frames = vcodec_list[codec_ind].max_b_frames;
-        vcodec_context->gop_size = vcodec_list[codec_ind].gop_size;
+        vcodec_context->mpeg_quant = vcodec_list[vcodec_index].mpeg_quant; //h.263
+        vcodec_context->qmin = vcodec_list[vcodec_index].qmin;             // best detail allowed - worst compression
+        vcodec_context->qmax = vcodec_list[vcodec_index].qmax;             // worst detail allowed - best compression
+        vcodec_context->max_qdiff = vcodec_list[vcodec_index].max_qdiff;
+        vcodec_context->max_b_frames = vcodec_list[vcodec_index].max_b_frames;
+        vcodec_context->gop_size = vcodec_list[vcodec_index].gop_size;
 
-        vcodec_context->qcompress = vcodec_list[codec_ind].qcompress;
-        vcodec_context->qblur = vcodec_list[codec_ind].qblur;
+        vcodec_context->qcompress = vcodec_list[vcodec_index].qcompress;
+        vcodec_context->qblur = vcodec_list[vcodec_index].qblur;
         vcodec_context->strict_std_compliance = FF_COMPLIANCE_NORMAL;
-        vcodec_context->codec_id = vcodec_list[codec_ind].codec_id;
+        vcodec_context->codec_id = vcodec_list[vcodec_index].codec_id;
         vcodec_context->codec_type = CODEC_TYPE_VIDEO;
         vcodec_context->pix_fmt = PIX_FMT_YUV420P; //only yuv420p available for mpeg
-        if(vcodec_list[codec_ind].fps) /*for gscpa must set fps in properties*/
-            vcodec_context->time_base = (AVRational){1, vcodec_list[codec_ind].fps}; //use properties fps
-        else
-            vcodec_context->time_base = (AVRational){_fps_num, _fps_denom};
+        if(vcodec_list[vcodec_index].fps) /*for gscpa must set fps in properties*/
+            vcodec_context->time_base = (AVRational){1, vcodec_list[vcodec_index].fps}; //use properties fps
+        else if ((fps_num > 0) && (fps_denom > 0))
+            vcodec_context->time_base = (AVRational){fps_num, fps_denom};
+        else 
+            vcodec_context->time_base = (AVRational){1, 15}; // set a default value
             
         // open codec
         if (avcodec_open(vcodec_context, vcodec) < 0) 
@@ -248,17 +341,6 @@ bool GVCodec::open_vcodec(unsigned codec_ind, UINT8 *out_buff, unsigned buff_siz
             std::cerr << "libgvencoder: could not open video codec\n";
             return(false);
         }
-    }
-    
-    codec_index = codec_ind;
-
-    if(vcodec_list[codec_index].codecPriv != NULL)
-    {
-        mkv_codecPriv.biCompression = vcodec_list[codec_index].fourcc;
-        if(codec_index == 2)
-            mkv_codecPriv.biSizeImage = mkv_codecPriv.biWidth * mkv_codecPriv.biHeight * 3; /*rgb*/
-        else
-            mkv_codecPriv.biSizeImage = mkv_codecPriv.biWidth * mkv_codecPriv.biHeight * 2;
     }
     
     return (true);
@@ -321,32 +403,155 @@ void GVCodec::fill_frame(UINT8* yuv422)
 int GVCodec::encode_video_frame (UINT8 *in_buf)
 {
     int size = 0;
-    if(!out)
+    if(!video_out)
     {
         std::cerr << "libgvencoder: can't copy frame - output buffer is NULL\n";
         return (0);
     }
     
-    switch(codec_index)
+    switch(vcodec_index)
     {
         case 0: //MJPG
-            size = jpeg->encode (in_buf, out, false);
+            size = jpeg->encode (in_buf, video_out, false);
             break;
         case 1: //YUY2
-            size = 0;
-            break;
-        case 2: //RGB
-            size = 0;
+            size = mkv_codecPriv.biWidth*mkv_codecPriv.biHeight*2; //frame in yuv format already (2 bytes per pixel)
+            memcpy(video_out, in_buf, size);
             break;
         default:
             //convert to 4:2:0
             fill_frame(in_buf);
             /* encode the image */
-            size = avcodec_encode_video(vcodec_context, out, _buff_size, picture);
+            size = avcodec_encode_video(vcodec_context, video_out, _video_buff_size, picture);
             break;
     }
     return (size);
 }
 
+int GVCodec::get_aac_obj_ind(int profile)
+{
+    int i = 0;
+
+    for (i=0; i<4; i++)
+        if(AAC_OBJ_TYPE[i] == profile) break;
+
+    return i;
+}
+
+int GVCodec::get_aac_samp_ind(int samprate)
+{
+    int i = 0;
+
+    for (i=0; i<13; i++)
+        if(AAC_SAMP_FREQ[i] == samprate) break;
+
+    if (i>12) 
+    {
+        std::cerr << "WARNING: invalid sample rate for AAC encoding\n";
+        std::cerr << "valid(96000, 88200, 64000, 48000, 44100, 32000, 24000,";
+        std::cerr << " 22050, 16000, 12000, 11025, 8000, 7350)\n";
+        i=4; /*default 44100*/
+    }
+    return i;
+}
+
+/* returns -1 on error or 
+ * expected audio frame size in samples
+ */
+int GVCodec::open_acodec(unsigned codec_ind, 
+                          UINT8 *out_buff, 
+                          unsigned buff_size,
+                          int samprate, 
+                          int channels)
+{
+    if (codec_ind >= acodec_list.size())
+    {
+        std::cerr << "libgvencoder: audio codec index not valid [0-" << acodec_list.size()-1 << "]\n";
+        return (-1);
+    }
+    acodec_index = codec_ind;
+    audio_out = out_buff;
+    _audio_buff_size = buff_size;
+    audio_frame_size = DEF_AUD_FRAME_SIZE;
+    
+    /*sets the matroska codec private data if required*/
+    if (acodec_list[acodec_index].codecPriv != NULL)
+    {
+        if (acodec_list[acodec_index].codec_id == CODEC_ID_AAC)
+        {
+            int obj_type = get_aac_obj_ind(acodec_list[acodec_index].profile);
+            int sampind  = get_aac_samp_ind(samprate);
+            AAC_ESDS[0] = (UINT8) ((obj_type & 0x1F) << 3 ) + ((sampind & 0x0F) >> 1);
+            AAC_ESDS[1] = (UINT8) ((sampind & 0x0F) << 7 ) + ((channels & 0x0F) << 3);
+        }
+    }
+    std::cout << "libgvencoder: using audio codec n." << acodec_index << std::endl;
+    if (acodec_index > 0) /* 0, is a built-in codec (PCM)*/
+    {
+        acodec = avcodec_find_encoder(acodec_list[acodec_index].codec_id);
+        if (!acodec) 
+        {
+            std::cerr << "libgvencoder: 4cc(" 
+                << acodec_list[acodec_index].fourcc << ") audio codec not found\n";
+            return(-1);
+        }
+        acodec_context = avcodec_alloc_context();
+
+        // define bit rate (lower = more compression but lower quality)
+        acodec_context->bit_rate = acodec_list[acodec_index].bit_rate;
+        acodec_context->profile = acodec_list[acodec_index].profile; /*for AAC*/
+
+        acodec_context->flags |= acodec_list[acodec_index].flags;
+        acodec_context->sample_rate = samprate;
+        acodec_context->channels = channels;
+        acodec_context->cutoff = 0; /*automatic*/
+        //data->codec_context->sample_fmt = SAMPLE_FMT_FLT; /* floating point sample */
+        acodec_context->codec_id = acodec_list[acodec_index].codec_id;
+        acodec_context->codec_type = CODEC_TYPE_AUDIO;
+
+        // open codec
+        if (avcodec_open(acodec_context, acodec) < 0) 
+        {
+            std::cerr << "libgvencoder: could not open audio codec\n";
+            return(-1);
+        }
+
+        /* the codec gives us the frame size, in samples */
+        audio_frame_size = acodec_context->frame_size;  
+        std::cout << "Audio frame size is" << audio_frame_size <<"samples for selected codec\n";
+    }
+    
+    return(audio_frame_size);
+}
+
+int GVCodec::encode_audio_frame (INT16 *in_buf)
+{
+    int size = 0;
+    if(!audio_out)
+    {
+        std::cerr << "libgvencoder: can't copy audio frame - output buffer is NULL\n";
+        return (0);
+    }
+    
+    switch(acodec_index)
+    {
+        case 0: //PCM
+            //std::cerr << "libgvencoder: input buffer already in pcm format\n";
+            size = audio_frame_size * sizeof(UINT16); //frame in pcm format already( 2 bytes per sample)
+            if(size > _audio_buff_size)
+            {
+                std::cerr << "libgvencoder: ouput buffer not big enough, needs " << size << " bytes\n";
+                std::cerr << "libgvencoder: input buffer already in pcm format no need for encoding\n";
+                return (0);
+            }
+            memcpy(audio_out, in_buf, size);
+            break;
+        default:
+            /* encode the image */
+            size = avcodec_encode_audio(acodec_context, audio_out, _audio_buff_size, in_buf);
+            break;
+    }
+    return (size);
+}
 
 END_LIBGVENCODER_NAMESPACE

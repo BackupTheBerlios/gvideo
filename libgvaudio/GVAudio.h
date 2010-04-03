@@ -54,11 +54,8 @@
 //API index
 #define PORT  0
 #define PULSE 1
-
-//buffer defs
-#define AUDBUFF_SIZE 100   //max number of audio buffers in the queue
-#define MPG_NUM_SAMP 1152  //number of samples in a audio buffer (MPEG frame) 
-#define DEF_AUD_FRAME_SIZE MPG_NUM_SAMP*4
+//max number of audio buffers in the queue
+#define AUDBUFF_SIZE 100
 
 START_LIBGVAUDIO_NAMESPACE
 

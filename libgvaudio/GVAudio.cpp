@@ -204,9 +204,9 @@ GVAudio::~GVAudio()
 /* saturate float samples to int16 limits*/
 INT16 GVAudio::clip_int16 (float in)
 {
-	in = (in < -32768) ? -32768 : (in > 32767) ? 32767 : in;
-	
-	return ((INT16) in);
+    in = (in < -32768) ? -32768 : (in > 32767) ? 32767 : in;
+    
+    return ((INT16) in);
 }
 
 void GVAudio::float_to_int16 (AudBuff *ab)
@@ -215,10 +215,10 @@ void GVAudio::float_to_int16 (AudBuff *ab)
         ab->i_frame = new INT16[max_samples];
     
     int samp = 0;
-	for(samp=0; samp < ab->samples; samp++)
-	{
-		ab->i_frame[samp] = clip_int16(ab->f_frame[samp] * 32767.0); //* 32768 + 385;
-	}
+    for(samp=0; samp < ab->samples; samp++)
+    {
+        ab->i_frame[samp] = clip_int16(ab->f_frame[samp] * 32767.0); //* 32768 + 385;
+    }
     
 }
 
@@ -471,7 +471,7 @@ bool GVAudio::getNext(AudBuff *ab)
 {
     if(!stream_ready)
     {
-        std::cerr << "libgvideo: stream isn't ready \n";
+        std::cerr << "libgvaudio: stream isn't ready \n";
         return (false);
     }
     

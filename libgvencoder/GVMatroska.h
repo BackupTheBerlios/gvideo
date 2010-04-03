@@ -121,7 +121,7 @@ class GVMatroska
                INT64 timescale,
                unsigned width, unsigned height,
                unsigned d_width, unsigned d_height,
-               float SampRate, int channels, int bitsSample,
+               int samprate, int channels, int bitsSample,
                bool _verbose = false);
     ~GVMatroska();
     bool failed();

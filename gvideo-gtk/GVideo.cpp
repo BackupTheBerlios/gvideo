@@ -47,6 +47,7 @@ class GVOpt : public libgvideo::GVOptions
         int adevice;
         int vcaptime;
         int vidcodec;
+        int audcodec;
         bool lformats, verbose, lcontrols, render, laudio;
         string devicename;
         string fourcc;
@@ -69,6 +70,7 @@ class GVOpt : public libgvideo::GVOptions
             opts->adevice = -1;
             opts->vcaptime = 5; //in seconds
             opts->vidcodec = 0; //MJPG
+            opts->audcodec = 0; //PCM
             opts->lformats = false;
             opts->verbose = false;
             opts->lcontrols = false;
@@ -122,8 +124,17 @@ class GVOpt : public libgvideo::GVOptions
             {
                 if (!gvcommon::from_string<int>(opts->vidcodec, string(optarg), dec))
                 {
-                    cerr << "couldn't convert codec index " << optarg << " to int value\n";
+                    cerr << "couldn't convert video codec index " << optarg << " to int value\n";
                     opts->vidcodec = 0;
+                }
+            }   
+                break;
+            case 'n':   /* -n or --audcodec */
+            {
+                if (!gvcommon::from_string<int>(opts->audcodec, string(optarg), dec))
+                {
+                    cerr << "couldn't convert audio codec index " << optarg << " to int value\n";
+                    opts->audcodec = 0;
                 }
             }   
                 break;
@@ -232,8 +243,9 @@ int main (int argc, char *argv[])
     opts.push_back((libgvideo::GV_options){"get",'g', true, "INDEX", "gets value from control with list INDEX"});
     opts.push_back((libgvideo::GV_options){"picture",'p', true, "FILENAME", "grab and save frame picure"});
     opts.push_back((libgvideo::GV_options){"video",'e', true, "FILENAME", "capture video to file"});
-    opts.push_back((libgvideo::GV_options){"captime",'t', true, "FILENAME", "capture video to file"});
+    opts.push_back((libgvideo::GV_options){"captime",'t', true, "TIME_IN_SEC", "capture time in seconds"});
     opts.push_back((libgvideo::GV_options){"vidcodec",'o', true, "CODEC_INDEX", "set video codec for encoding"});
+    opts.push_back((libgvideo::GV_options){"audcodec",'n', true, "CODEC_INDEX", "set audio codec for encoding"});
     opts.push_back((libgvideo::GV_options){"render",'j', false, "", "grab and render frames"});
     opts.push_back((libgvideo::GV_options){"laudio",'q', false, "", "lists input audio devices"});
     opts.push_back((libgvideo::GV_options){"verbose",'v', false, "", "prints a lot of debug messages"});
@@ -357,6 +369,12 @@ int main (int argc, char *argv[])
         fps->denom = options->opts->fps;
         if (verbose) cout << "trying to set fps to " << fps->num << "/" << fps->denom << endl;
         dev->set_fps(fps);
+        if(!fps->num || !fps->denom)
+        {
+            cerr << "set fps failed: using default value 1/15 \n";
+            fps->num = 1;
+            fps->denom = 15;
+        }
     }
     else
     {
@@ -423,7 +441,9 @@ int main (int argc, char *argv[])
     if(options->opts->videofile.size() > 0)
     {
         bool quit = false;
-        unsigned codec_ind = options->opts->vidcodec;
+        unsigned vcodec_ind = options->opts->vidcodec;
+        unsigned acodec_ind = options->opts->audcodec;
+        
         if(dev->set_format(fourcc, width, height) < 0)
             goto finish;
         int format = dev->get_format();
@@ -439,14 +459,39 @@ int main (int argc, char *argv[])
             audio = new libgvaudio::GVAudio(verbose);
         /*get a new audio buffer*/
         libgvaudio::AudBuff *aud_buf = new libgvaudio::AudBuff;
+        /*get a new encoder instance*/
+        libgvencoder::GVCodec*  encoder= new libgvencoder::GVCodec();
         
         /*get audio parameters*/
         int adev = audio->setDevice(options->opts->adevice);
         if(verbose) cout << "using audio device id:" << adev << endl;
         int channels = audio->listAudioDev[adev].channels;
-        float samprate = float(1.0 * audio->listAudioDev[adev].samprate);
-        int frame_size = DEF_AUD_FRAME_SIZE; /*use the default value*/
-        if(verbose) cout << "audio: samprate=" << samprate << " channels=" << channels << endl;
+        int samprate = audio->listAudioDev[adev].samprate;
+        UINT8* audio_out_buff = NULL;
+        int asize = 0;
+        if(acodec_ind > 0) 
+        {
+            asize = 240000;
+            audio_out_buff = new UINT8 [asize];
+            cout << "outbuf:" << long(audio_out_buff) << "\n";
+        }
+        int frame_size = encoder->open_acodec(acodec_ind, 
+                                              audio_out_buff, 
+                                              asize, 
+                                              samprate,
+                                              channels);
+        if (frame_size <= 0)
+        {
+            cerr << "couldn't audio open codec (ind=" << acodec_ind << ")\n";
+            /*clean up*/
+            delete[] audio_out_buff;
+            delete encoder;
+            delete aud_buf;
+            goto finish;
+        }
+        
+        if(verbose) cout << "audio: samprate=" << samprate << " channels=" 
+            << channels << " frame size:" << frame_size << endl;
         
         /*audio frame duration*/
         UINT64 afdur = (UINT64) (1000*frame_size)/samprate;
@@ -454,16 +499,16 @@ int main (int argc, char *argv[])
         /*video frame duration (use the set fps (25 default))*/
         UINT64 vfdur = 1 * 1e9/fps->denom;
         
-        UINT32 size = width*height/2;
-        UINT8* out_buff = new UINT8 [size];
-        /*get a new encoder instance*/
-        libgvencoder::GVCodec*  vencoder= new libgvencoder::GVCodec(width, height, fps->denom, fps->num);
-        if(!(vencoder->open_vcodec(codec_ind, out_buff, size)))
+        UINT32 size = width*height*2; /*enough for yuy2 (worst case)*/
+        UINT8* video_out_buff = new UINT8 [size];
+        
+        if(!(encoder->open_vcodec(vcodec_ind, video_out_buff, size, width, height, fps->denom, fps->num)))
         {
-            cerr << "couldn't open codec (ind=" << codec_ind << ")\n";
+            cerr << "couldn't open codec (ind=" << vcodec_ind << ")\n";
             /*clean up*/
-            delete[] out_buff;
-            delete vencoder;
+            delete[] video_out_buff;
+            delete[] audio_out_buff;
+            delete encoder;
             delete aud_buf;
             goto finish;
         }
@@ -483,20 +528,22 @@ int main (int argc, char *argv[])
         mkv_priv->biClrImportant = 0;
         /*define a new matroska container*/
         libgvencoder::GVMatroska* matroska = new libgvencoder::GVMatroska( 
-                                                        options->opts->videofile.c_str(),
-                                                        "-gvideo-",
-                                                        vencoder->vcodec_list[codec_ind].mkv_codec,
-                                                        "A_PCM/INT/LIT",
-                                                        vencoder->vcodec_list[codec_ind].codecPriv,
-                                                        vencoder->vcodec_list[codec_ind].codecPriv_size,
-                                                        vfdur,
-                                                        NULL, 0,
-                                                        afdur,
-                                                        1000000,
-                                                        width, height,
-                                                        width, height,
-                                                        samprate, channels, 16,
-                                                        true);
+                                                options->opts->videofile.c_str(),
+                                                "-gvideo-",
+                                                encoder->vcodec_list[vcodec_ind].mkv_codec,
+                                                encoder->acodec_list[acodec_ind].mkv_codec,
+                                                encoder->vcodec_list[vcodec_ind].codecPriv,
+                                                encoder->vcodec_list[vcodec_ind].codecPriv_size,
+                                                vfdur,
+                                                encoder->acodec_list[acodec_ind].codecPriv,
+                                                encoder->acodec_list[acodec_ind].codecPriv_size,
+                                                afdur,
+                                                1000000,
+                                                width, height,
+                                                width, height,
+                                                samprate, channels, 
+                                                encoder->acodec_list[acodec_ind].bits,
+                                                true);
         delete mkv_priv;
         dev->stream_on();
         
@@ -525,22 +572,22 @@ int main (int argc, char *argv[])
             timestamp_f0 = framebuf->time_stamp;
             vts = 0;
             
-            size = vencoder->encode_video_frame (framebuf->yuv_frame);
-            matroska->add_VideoFrame(out_buff, size, vts);
+            size = encoder->encode_video_frame (framebuf->yuv_frame);
+            matroska->add_VideoFrame(video_out_buff, size, vts);
         }
         else
         {
             /*clean up*/
             delete matroska;
-            delete[] out_buff;
-            delete vencoder;
+            delete[] video_out_buff;
+            delete encoder;
             delete aud_buf;
             goto finish;
         }
         
         if(verbose) cout << "ref ts=" << timestamp_f0 << endl;
         /*start audio stream*/
-        audio->startStream();
+        audio->startStream(samprate, channels, frame_size);
 
         while( !quit )
         {
@@ -552,9 +599,15 @@ int main (int argc, char *argv[])
                 if (try_next)
                 {
                     ats = aud_buf->time_stamp - vid_start_time;
-                    matroska->add_AudioFrame(aud_buf->i_frame, 
-                                            aud_buf->samples * sizeof(INT16), 
-                                            ats);
+                    if(acodec_ind > 0)
+                    {
+                        asize = encoder->encode_audio_frame(aud_buf->i_frame);
+                        matroska->add_AudioFrame(audio_out_buff, asize, ats);
+                    }
+                    else // use pcm buffer
+                        matroska->add_AudioFrame(aud_buf->i_frame, 
+                                                 aud_buf->samples * sizeof(INT16), 
+                                                 ats);
                     /*audio timestamp more recent than video - go and process another video frame*/
                     if(ats >= vts)
                         try_next = false;
@@ -571,8 +624,8 @@ int main (int argc, char *argv[])
                     /*we already captured the defined amount of time so let's finish*/
                     quit = true;
                 }
-                size = vencoder->encode_video_frame (framebuf->yuv_frame);
-                matroska->add_VideoFrame(out_buff, size, vts);
+                size = encoder->encode_video_frame (framebuf->yuv_frame);
+                matroska->add_VideoFrame(video_out_buff, size, vts);
             }
         }
         /* stop the audio stream*/
@@ -585,9 +638,10 @@ int main (int argc, char *argv[])
         /*clean up*/
         delete matroska;
         cout << "delete out buff\n";
-        delete[] out_buff;
-        cout << "delete vencoder buff\n";
-        delete vencoder;
+        delete[] video_out_buff;
+        delete[] audio_out_buff;
+        cout << "delete encoder buff\n";
+        delete encoder;
         cout << "delete aud buff\n";
         delete aud_buf;
     }
