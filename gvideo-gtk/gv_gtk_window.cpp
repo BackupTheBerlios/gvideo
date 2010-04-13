@@ -104,6 +104,7 @@ GtkWindow::GtkWindow(
                     {
                         control_widget->append_text(dev->listControls[i].entries[j]);
                     }
+                    control_widget->set_active(dev->listControls[i].default_val);
                     controlTable->attach(*control_widget, 1, 2, i, i+1);
                     //Connect signal handler:
                     control_widget->signal_changed().connect(sigc::bind<Gtk::ComboBoxText*, int>(
@@ -115,7 +116,7 @@ GtkWindow::GtkWindow(
             case V4L2_CTRL_TYPE_BOOLEAN:
                 {
                     Gtk::CheckButton *control_widget = new Gtk::CheckButton();
-                    //control_widget->set_data("control_info", dev->listControls[i]);
+                    control_widget->set_active(dev->listControls[i].default_val);
                     controlTable->attach(*control_widget, 1, 2, i, i+1);
                     //Connect signal handler:
                     control_widget->signal_clicked().connect(sigc::bind<Gtk::CheckButton*, int>(
@@ -130,6 +131,7 @@ GtkWindow::GtkWindow(
                         dev->listControls[i].min, 
                         dev->listControls[i].max, 
                         dev->listControls[i].step );
+                    control_widget->set_value(dev->listControls[i].default_val);
                     controlTable->attach(*control_widget, 1, 2, i, i+1);
                     //Connect signal handler:
                     control_widget->signal_value_changed().connect(sigc::bind<Gtk::HScale*, int>(
@@ -205,6 +207,7 @@ GtkWindow::GtkWindow(
     {
         audio_dev_combo->append_text(audio->listAudioDev[j].name);
     }
+    audio_dev_combo->set_active(0);
     audioTable->attach(*audio_dev_combo, 1, 2, i, i+1);
     //Connect signal handler:
     audio_dev_combo->signal_changed().connect(sigc::mem_fun(*this, &GtkWindow::on_audio_dev_combo_changed));
@@ -246,12 +249,12 @@ void GtkWindow::on_hscale_value_changed(Gtk::HScale* hScale, int cindex)
 
 void GtkWindow::on_video_format_combo_changed()
 {
-
+    //update resolution_combo and fps_combo
 }
 
 void GtkWindow::on_resolution_combo_changed()
 {
-
+    //update fps_combo
 }
 
 void GtkWindow::on_fps_combo_changed()

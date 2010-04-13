@@ -308,7 +308,7 @@ int main (int argc, char *argv[])
     Gtk::Main::run(*window);   
 
     //remove window
-    //delete window;
+    delete window;
     
   finish: 
     if(verbose) cout << "deleting dev\n"; 
