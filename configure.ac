@@ -124,6 +124,21 @@ GVENCODER_LIBRARY_VERSION=$GVENCODER_MAJOR_VERSION:$GVENCODER_MINOR_VERSION:$GVE
 AC_SUBST(GVENCODER_LIBRARY_VERSION)
 
 dnl -----------------------------------------------
+dnl gvideo command line app
+dnl -----------------------------------------------
+
+GVIDEO_GTK_NAME=gvideo
+AC_SUBST(GVIDEO_NAME)
+
+GVIDEO_MAJOR_VERSION=0
+GVIDEO_MINOR_VERSION=1
+GVIDEO_MICRO_VERSION=0
+
+# app version
+GVIDEO_VERSION=$GVIDEO_MAJOR_VERSION.$GVIDEO_MINOR_VERSION.$GVIDEO_MICRO_VERSION
+AC_SUBST(GVIDEO_VERSION)
+
+dnl -----------------------------------------------
 dnl gvideo-gtk ui
 dnl -----------------------------------------------
 
@@ -264,6 +279,22 @@ if test "$has_libavcodec_dir" = yes; then
 fi
 
 dnl --------------------------------------------------------------------------
+dnl check for gvideo dependencies
+dnl --------------------------------------------------------------------------
+AC_MSG_CHECKING(if you want to disable gvideo command line app)
+AC_ARG_ENABLE(cmd, AS_HELP_STRING([--disable-cmd],
+        [disable command line app build (default: enabled)]),
+    [enable_cmd=no],
+    [enable_cmd=yes])
+
+AC_MSG_RESULT($enable_cmd)
+dnl if test $enable_cmd = yes; then
+    dnl PKG_CHECK_MODULES(GVIDEO, )
+    dnl AC_SUBST(GVIDEO_CFLAGS)
+    dnl AC_SUBST(GVIDEO_LIBS)
+dnl fi
+
+dnl --------------------------------------------------------------------------
 dnl check for gvideo-gtk dependencies
 dnl --------------------------------------------------------------------------
 AC_MSG_CHECKING(if you want to disable gvideo-gtk support)
@@ -324,6 +355,7 @@ AC_OUTPUT(Makefile \
           libgvrender/Makefile \
           libgvaudio/Makefile \
           libgvencoder/Makefile \
+          gvideo/Makefile \
           gvideo-gtk/Makefile \
           common/Makefile \
           pixmaps/Makefile \

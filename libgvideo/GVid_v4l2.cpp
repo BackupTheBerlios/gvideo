@@ -145,7 +145,7 @@ int GVDevice::get_format_index(std::string fourcc)
         }
     }
     delete strconv;
-    std::cerr << "Warn: format " << fourcc << " not supported\n";
+    std::cerr << "libgvideo: format " << fourcc << " not supported\n";
     return (-1);
 }
 
@@ -158,10 +158,25 @@ int GVDevice::get_res_index(int format_index, int twidth, int theight)
             listVidFormats[format_index].listVidCap[i].height == theight)
             return (i);
     }
-    std::cerr << "Warn: resolution " << twidth << "x" << theight << " not supported for " 
+    std::cerr << "libgvideo: resolution " << twidth << "x" << theight << " not supported for " 
         << listVidFormats[format_index].fourcc << std::endl;
     return(-1);
 }
+
+int GVDevice::get_fps_index(int format_index, int res_index, GVFps* frate)
+{
+    int i=0;
+    for(i=0;i<listVidFormats[format_index].listVidCap[res_index].fps.size(); i++)
+    {
+        if((frate->num == listVidFormats[format_index].listVidCap[res_index].fps[i].num) &&
+            (frate->denom == listVidFormats[format_index].listVidCap[res_index].fps[i].denom))
+            return i;
+    }
+    std::cerr << "libgvideo: fps " << frate->num << "/" 
+        << frate->denom << " not supported for selected format\n";
+    return(-1);
+}
+
 void GVDevice::clean_buffers()
 {
     struct v4l2_requestbuffers rb;

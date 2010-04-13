@@ -134,6 +134,7 @@ class GVDevice
     int set_format (std::string fourcc, int twidth, int theight);
     int get_format_index(std::string fourcc);
     int get_res_index(int format_index, int twidth, int theight);
+    int get_fps_index(int format_index, int res_index, GVFps* frate);
     int get_format();
     int get_width();
     int get_height();
