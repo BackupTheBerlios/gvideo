@@ -38,12 +38,18 @@
 START_GVIDEOGTK_NAMESPACE
 
 GtkWindow::GtkWindow(
-        libgvideo::GVDevice *dev, 
-        libgvaudio::GVAudio *audio, 
-        int format /*= 0*/, 
-        int resolution /*= 0*/, 
-        int fps /*= 0*/ )
+        libgvideo::GVDevice* _dev, 
+        libgvaudio::GVAudio* _audio, 
+        int _format /*= 0*/, 
+        int _resolution /*= 0*/, 
+        int _fps /*= 0*/ )
 {
+    dev = _dev;
+    audio = _audio;
+    format = _format;
+    resolution = _resolution;
+    fps = _fps;
+    
     gv_ImageLabel= new Gtk::Label("Image");
     gv_VideoLabel= new Gtk::Label("Video");
     gv_AudioLabel= new Gtk::Label("Audio");
@@ -174,7 +180,8 @@ GtkWindow::GtkWindow(
     resolution_combo->set_active(resolution);
     videoTable->attach(*resolution_combo, 1, 2, i, i+1);
     //Connect signal handler:
-    resolution_combo->signal_changed().connect(sigc::mem_fun(*this, &GtkWindow::on_resolution_combo_changed));
+    signalResolutionCombo = resolution_combo->signal_changed().connect(
+        sigc::mem_fun(*this, &GtkWindow::on_resolution_combo_changed));
     
     //fps
     i++;
@@ -193,7 +200,8 @@ GtkWindow::GtkWindow(
     fps_combo->set_active(fps);
     videoTable->attach(*fps_combo, 1, 2, i, i+1);
     //Connect signal handler:
-    fps_combo->signal_changed().connect(sigc::mem_fun(*this, &GtkWindow::on_fps_combo_changed));
+    signalFpsCombo = fps_combo->signal_changed().connect(
+        sigc::mem_fun(*this, &GtkWindow::on_fps_combo_changed));
 
     //Audio definitions
     
@@ -216,6 +224,13 @@ GtkWindow::GtkWindow(
     gv_Notebook->append_page(*controlTable, *gv_ImageLabel);
     gv_Notebook->append_page(*videoTable, *gv_VideoLabel);
     gv_Notebook->append_page(*audioTable, *gv_AudioLabel);
+    
+    //save current resolution
+    width = dev->listVidFormats[format].listVidCap[resolution].width;
+    height = dev->listVidFormats[format].listVidCap[resolution].height;
+    //save current frame rate
+    frate.num = dev->listVidFormats[format].listVidCap[resolution].fps[fps].num;
+    frate.denom = dev->listVidFormats[format].listVidCap[resolution].fps[fps].denom;
     
     show_all_children();
 }
@@ -249,17 +264,86 @@ void GtkWindow::on_hscale_value_changed(Gtk::HScale* hScale, int cindex)
 
 void GtkWindow::on_video_format_combo_changed()
 {
-    //update resolution_combo and fps_combo
+    //get new format
+    format = video_format_combo->get_active_row_number();
+    
+    //block the resolution comboBox changed signal
+    signalResolutionCombo.block();
+    
+    //update resolution_combo
+    resolution_combo->clear_items();
+    
+    int j = 0;
+    for (j=0; j<dev->listVidFormats[format].listVidCap.size(); j++)
+    {
+        std::stringstream out;
+        out << dev->listVidFormats[format].listVidCap[j].width << "x" 
+            << dev->listVidFormats[format].listVidCap[j].height;
+        resolution_combo->append_text(out.str());
+        if((width == dev->listVidFormats[format].listVidCap[j].width) &&
+            (height == dev->listVidFormats[format].listVidCap[j].height))
+            resolution = j;
+    }
+    if(resolution >= dev->listVidFormats[format].listVidCap.size())
+        resolution = dev->listVidFormats[format].listVidCap.size() -1;
+    
+    //unblock the fps combo changed signal
+    signalResolutionCombo.unblock();
+    
+    resolution_combo->set_active(resolution);
+
+    //apply changes
+    std::cout << "format changed to index " << format << std::endl;  
 }
 
 void GtkWindow::on_resolution_combo_changed()
 {
+    //get new resolution
+    resolution = resolution_combo->get_active_row_number();
+    
+    //save resolution
+    width = dev->listVidFormats[format].listVidCap[resolution].width;
+    height = dev->listVidFormats[format].listVidCap[resolution].height;
+    
+    //block fps comboBox changed signal
+    signalFpsCombo.block();
+    
     //update fps_combo
+    fps_combo->clear_items();
+    int j = 0;
+    for (j=0; j<dev->listVidFormats[format].listVidCap[resolution].fps.size(); j++)
+    {
+        std::stringstream out;
+        out << dev->listVidFormats[format].listVidCap[resolution].fps[j].num << "/" 
+            << dev->listVidFormats[format].listVidCap[resolution].fps[j].denom;
+        fps_combo->append_text(out.str());
+        if((frate.num == dev->listVidFormats[format].listVidCap[resolution].fps[j].num ) &&
+            (frate.denom == dev->listVidFormats[format].listVidCap[resolution].fps[j].denom))
+            fps = j;
+    }
+    if(fps >= dev->listVidFormats[format].listVidCap[resolution].fps.size())
+        fps = dev->listVidFormats[format].listVidCap[resolution].fps.size() -1;
+    
+    //unblock fps comboBox changed signal
+    signalFpsCombo.unblock();
+    
+    fps_combo->set_active(fps);
+    
+    //apply changes
+    std::cout << "resolution changed to index " << resolution << std::endl;
 }
 
 void GtkWindow::on_fps_combo_changed()
 {
-
+    //get new fps
+    fps = fps_combo->get_active_row_number();
+    
+    //save frame rate
+    frate.num = dev->listVidFormats[format].listVidCap[resolution].fps[fps].num;
+    frate.denom = dev->listVidFormats[format].listVidCap[resolution].fps[fps].denom;
+    
+    //apply changes
+    std::cout << "fps changed to index " << fps << std::endl;
 }
 
 void GtkWindow::on_audio_dev_combo_changed()

@@ -57,7 +57,9 @@ protected:
   void on_hscale_value_changed(Gtk::HScale* hScale, int cindex);
   void on_video_format_combo_changed();
   void on_resolution_combo_changed();
+  sigc::connection signalResolutionCombo;
   void on_fps_combo_changed();
+  sigc::connection signalFpsCombo;
   void on_audio_dev_combo_changed();
   //void on_notebook_switch_page(GtkNotebookPage* page, guint page_num);
   
@@ -86,13 +88,21 @@ protected:
   Gtk::Button* gv_Button_vid;
   Gtk::Button* gv_Button_Quit;
   
+  //video defs
+  int width;
+  int height;
+  libgvideo::GVFps frate;
+  int format, resolution, fps;
+  libgvideo::GVDevice *dev; 
+  libgvaudio::GVAudio *audio; 
+  
 public:
   
-  GtkWindow( libgvideo::GVDevice *dev, 
-        libgvaudio::GVAudio *audio, 
-        int format = 0, 
-        int resolution = 0, 
-        int fps = 0);
+  GtkWindow( libgvideo::GVDevice *_dev, 
+        libgvaudio::GVAudio *_audio, 
+        int _format = 0, 
+        int _resolution = 0, 
+        int _fps = 0);
         
   virtual ~GtkWindow();
 };
