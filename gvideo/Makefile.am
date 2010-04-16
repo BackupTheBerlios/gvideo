@@ -18,11 +18,11 @@ cpp_sources = GVideo.cpp
 
 gvideo_SOURCES = $(h_sources) $(cpp_sources)
 
-gvideo_CFLAGS = $(GVIDEO_CFLAGS)
+gvideo_CFLAGS = $(GVIDEOCMD_CFLAGS)
 
 gvideo_LDFLAGS = $(LIBINTL)
 
-gvideo_LDADD = $(GVIDEO_LIBS) \
+gvideo_LDADD = $(GVIDEOCMD_LIBS) \
                    ../$(GVIDEO_LIBRARY_NAME)/$(GVIDEO_LIBRARY_NAME).la \
                    ../$(GVRENDER_LIBRARY_NAME)/$(GVRENDER_LIBRARY_NAME).la \
                    ../$(GVAUDIO_LIBRARY_NAME)/$(GVAUDIO_LIBRARY_NAME).la \

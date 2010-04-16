@@ -82,6 +82,29 @@ GVAUDIO_LIBRARY_VERSION=$GVAUDIO_MAJOR_VERSION:$GVAUDIO_MINOR_VERSION:$GVAUDIO_M
 AC_SUBST(GVAUDIO_LIBRARY_VERSION)
 
 dnl -----------------------------------------------
+dnl libgvthreads name and version number
+dnl -----------------------------------------------
+
+GVTHREADS_LIBRARY_NAME=libgvthreads
+AC_SUBST(GVTHREADS_LIBRARY_NAME)
+GVTHREADS_LD_NAME=gvthreads
+AC_SUBST(GVTHREADS_LD_NAME)
+
+GVTHREADS_MAJOR_VERSION=0
+GVTHREADS_MINOR_VERSION=1
+GVTHREADS_MICRO_VERSION=0
+
+#API version (SONAME)
+GVTHREADS_API_VERSION=$GVTHREADS_MAJOR_VERSION.$GVTHREADS_MINOR_VERSION
+AC_SUBST(GVTHREADS_API_VERSION)
+
+#shared library versioning
+GVTHREADS_LIBRARY_VERSION=$GVTHREADS_MAJOR_VERSION:$GVTHREADS_MINOR_VERSION:$GVTHREADS_MICRO_VERSION
+AC_SUBST(GVTHREADS_LIBRARY_VERSION)
+
+
+
+dnl -----------------------------------------------
 dnl libgvrender name and version number
 dnl -----------------------------------------------
 
@@ -127,16 +150,16 @@ dnl -----------------------------------------------
 dnl gvideo command line app
 dnl -----------------------------------------------
 
-GVIDEO_GTK_NAME=gvideo
-AC_SUBST(GVIDEO_NAME)
+GVIDEO_CMD_NAME=gvideo
+AC_SUBST(GVIDEO_CMD_NAME)
 
-GVIDEO_MAJOR_VERSION=0
-GVIDEO_MINOR_VERSION=1
-GVIDEO_MICRO_VERSION=0
+GVIDEO_CMD_MAJOR_VERSION=0
+GVIDEO_CMD_MINOR_VERSION=1
+GVIDEO_CMD_MICRO_VERSION=0
 
 # app version
-GVIDEO_VERSION=$GVIDEO_MAJOR_VERSION.$GVIDEO_MINOR_VERSION.$GVIDEO_MICRO_VERSION
-AC_SUBST(GVIDEO_VERSION)
+GVIDEO_CMD_VERSION=$GVIDEO_CMD_MAJOR_VERSION.$GVIDEO_CMD_MINOR_VERSION.$GVIDEO_CMD_MICRO_VERSION
+AC_SUBST(GVIDEO_CMD_VERSION)
 
 dnl -----------------------------------------------
 dnl gvideo-gtk ui
@@ -253,6 +276,23 @@ if test $enable_libgvencoder = yes; then
     AC_SUBST(GVENCODERLIB_LIBS)
 fi
 
+dnl --------------------------------------------------------------------------
+dnl check for libgvthreads dependencies
+dnl --------------------------------------------------------------------------
+
+AC_MSG_CHECKING(if you want to disable gvideo libgvthreads support)
+AC_ARG_ENABLE(gvthreads, AS_HELP_STRING([--disable-libgvthreads],
+        [disable gvideo libgvthreads support (default: enabled)]),
+    [enable_libgvthreads=no],
+    [enable_libgvthreads=yes])
+
+AC_MSG_RESULT($enable_libgvthreads)
+dnl if test $enable_libgvthreads = yes; then
+dnl     PKG_CHECK_MODULES(GVTHREADSLIB, [libavcodec])
+dnl     AC_SUBST(GVTHREADSLIB_CFLAGS)
+dnl     AC_SUBST(GVTHREADSLIB_LIBS)
+dnl fi
+
 dnl --------------------------------------
 dnl Check for avcodec.h installation path
 dnl --------------------------------------
@@ -289,9 +329,9 @@ AC_ARG_ENABLE(cmd, AS_HELP_STRING([--disable-cmd],
 
 AC_MSG_RESULT($enable_cmd)
 dnl if test $enable_cmd = yes; then
-    dnl PKG_CHECK_MODULES(GVIDEO, )
-    dnl AC_SUBST(GVIDEO_CFLAGS)
-    dnl AC_SUBST(GVIDEO_LIBS)
+    dnl PKG_CHECK_MODULES(GVIDEOCMD, )
+    dnl AC_SUBST(GVIDEOCMD_CFLAGS)
+    dnl AC_SUBST(GVIDEOCMD_LIBS)
 dnl fi
 
 dnl --------------------------------------------------------------------------
@@ -355,6 +395,7 @@ AC_OUTPUT(Makefile \
           libgvrender/Makefile \
           libgvaudio/Makefile \
           libgvencoder/Makefile \
+          libgvthreads/Makefile \
           gvideo/Makefile \
           gvideo-gtk/Makefile \
           common/Makefile \

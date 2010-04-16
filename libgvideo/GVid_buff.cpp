@@ -181,7 +181,7 @@ error:
 int GVBuffer::frame_decode(VidBuff *frame, int pix_order/*=-1*/)
 {
     int ret = 0;
-    int framesizeIn =(width * height << 1);//2 bytes per pixel
+    int framesizeIn =(width * height * 2);//2 bytes per pixel
     UINT8 * frame_data = frame->yuv_frame;
     UINT8 * raw_data = frame->raw_frame;
     size_t size = frame->raw_size;
@@ -280,10 +280,7 @@ int GVBuffer::frame_decode(VidBuff *frame, int pix_order/*=-1*/)
             } 
             else 
             {
-                if (size > framesizeIn)
-                    memcpy(frame_data, raw_data,(size_t) framesizeIn);
-                else
-                    memcpy(frame_data, raw_data, size);
+                memcpy(frame_data, raw_data,(size_t) framesizeIn);
             }
             break;
 
@@ -365,9 +362,27 @@ int GVBuffer::produce_nextFrame(int pix_order/*=-1*/, VidBuff *frame/*=NULL*/)
         
         return 0;
     }
+    else if(frame)
+    {
+        //frame buffer full - get new frame directly, don't write it to frame buffer 
+        if(!(frame->raw_frame))
+            frame->raw_frame = new UINT8 [_raw_size];
+            
+        if(!(frame->yuv_frame))
+            frame->yuv_frame = new UINT8 [_yuv_size];
+        
+        if(dev->grab_frame(frame->raw_frame) < 0)
+        {
+             pthread_mutex_unlock( &mutex );
+            return -1;
+        }
+        frame->raw_size = dev->get_bytesused();
+        frame_decode(frame, pix_order);
+        frame->time_stamp = dev->get_timestamp();
+    }
     
     pthread_mutex_unlock( &mutex );
-    std::cerr << "libgvideo: no buffer slot available (consume a frame first)\n";
+    std::cerr << "libgvideo: frame buffer full (must consume more or produce less)\n";
     return -1;
 }
 

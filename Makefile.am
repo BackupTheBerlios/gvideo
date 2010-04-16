@@ -4,7 +4,8 @@ SUBDIRS = $(GVIDEO_LIBRARY_NAME) \
           $(GVRENDER_LIBRARY_NAME) \
           $(GVAUDIO_LIBRARY_NAME) \
           $(GVENCODER_LIBRARY_NAME) \
-          $(GVIDEO_NAME) \
+          $(GVTHREADS_LIBRARY_NAME) \
+          $(GVIDEO_CMD_NAME) \
           $(GVIDEO_GTK_NAME) \
           common \
           po \
@@ -15,7 +16,8 @@ DIST_SUBDIRS = $(GVIDEO_LIBRARY_NAME) \
                $(GVRENDER_LIBRARY_NAME) \
                $(GVAUDIO_LIBRARY_NAME) \
                $(GVENCODER_LIBRARY_NAME) \
-               $(GVIDEO_NAME) \
+               $(GVTHREADS_LIBRARY_NAME) \
+               $(GVIDEO_CMD_NAME) \
                $(GVIDEO_GTK_NAME) \
                common \
                po \

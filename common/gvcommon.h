@@ -59,6 +59,8 @@ typedef uint64_t   UINT64;
 #define END_LIBGVENCODER_NAMESPACE };
 #define START_LIBGVRENDER_NAMESPACE namespace libgvrender {
 #define END_LIBGVRENDER_NAMESPACE };
+#define START_LIBGVTHREADS_NAMESPACE namespace libgvthreads {
+#define END_LIBGVTHREADS_NAMESPACE };
 
 #define START_GVIDEOGTK_NAMESPACE namespace gvideogtk {
 #define END_GVIDEOGTK_NAMESPACE };
@@ -306,3 +308,4 @@ class GVTime
 END_GVCOMMON_NAMESPACE
 
 #endif
+

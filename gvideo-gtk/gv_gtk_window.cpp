@@ -39,13 +39,15 @@ START_GVIDEOGTK_NAMESPACE
 
 GtkWindow::GtkWindow(
         libgvideo::GVDevice* _dev, 
-        libgvaudio::GVAudio* _audio, 
+        libgvaudio::GVAudio* _audio,
+        GVVideoThreads* _th_video /*= NULL*/,
         int _format /*= 0*/, 
         int _resolution /*= 0*/, 
         int _fps /*= 0*/ )
 {
     dev = _dev;
     audio = _audio;
+    th_video = _th_video;
     format = _format;
     resolution = _resolution;
     fps = _fps;
@@ -99,7 +101,7 @@ GtkWindow::GtkWindow(
     for(i=0; i < dev->listControls.size(); i++)
     {
         Gtk::Label  *control_label= new Gtk::Label(dev->listControls[i].name);
-        controlTable->attach(*control_label, 0, 1, i, i+1);
+        controlTable->attach(*control_label, 0, 1, i, i+1, Gtk::EXPAND | Gtk::FILL, Gtk::SHRINK);
         
         switch(dev->listControls[i].type)
         {
@@ -111,7 +113,7 @@ GtkWindow::GtkWindow(
                         control_widget->append_text(dev->listControls[i].entries[j]);
                     }
                     control_widget->set_active(dev->listControls[i].default_val);
-                    controlTable->attach(*control_widget, 1, 2, i, i+1);
+                    controlTable->attach(*control_widget, 1, 2, i, i+1, Gtk::EXPAND | Gtk::FILL, Gtk::SHRINK);
                     //Connect signal handler:
                     control_widget->signal_changed().connect(sigc::bind<Gtk::ComboBoxText*, int>(
                         sigc::mem_fun(*this, &GtkWindow::on_combo_changed), control_widget, i ));
@@ -123,7 +125,7 @@ GtkWindow::GtkWindow(
                 {
                     Gtk::CheckButton *control_widget = new Gtk::CheckButton();
                     control_widget->set_active(dev->listControls[i].default_val);
-                    controlTable->attach(*control_widget, 1, 2, i, i+1);
+                    controlTable->attach(*control_widget, 1, 2, i, i+1, Gtk::EXPAND | Gtk::FILL, Gtk::SHRINK);
                     //Connect signal handler:
                     control_widget->signal_clicked().connect(sigc::bind<Gtk::CheckButton*, int>(
                         sigc::mem_fun(*this, &GtkWindow::on_check_button_clicked), control_widget, i ));
@@ -138,7 +140,7 @@ GtkWindow::GtkWindow(
                         dev->listControls[i].max, 
                         dev->listControls[i].step );
                     control_widget->set_value(dev->listControls[i].default_val);
-                    controlTable->attach(*control_widget, 1, 2, i, i+1);
+                    controlTable->attach(*control_widget, 1, 2, i, i+1, Gtk::EXPAND | Gtk::FILL, Gtk::SHRINK);
                     //Connect signal handler:
                     control_widget->signal_value_changed().connect(sigc::bind<Gtk::HScale*, int>(
                         sigc::mem_fun(*this, &GtkWindow::on_hscale_value_changed), control_widget, i ));
@@ -160,7 +162,7 @@ GtkWindow::GtkWindow(
         video_format_combo->append_text(dev->listVidFormats[j].fourcc);
     }
     video_format_combo->set_active(format);
-    videoTable->attach(*video_format_combo, 1, 2, i, i+1);
+    videoTable->attach(*video_format_combo, 1, 2, i, i+1, Gtk::EXPAND | Gtk::FILL, Gtk::SHRINK);
     //Connect signal handler:
     video_format_combo->signal_changed().connect(sigc::mem_fun(*this, &GtkWindow::on_video_format_combo_changed));
     
@@ -178,7 +180,7 @@ GtkWindow::GtkWindow(
         resolution_combo->append_text(out.str());
     }
     resolution_combo->set_active(resolution);
-    videoTable->attach(*resolution_combo, 1, 2, i, i+1);
+    videoTable->attach(*resolution_combo, 1, 2, i, i+1, Gtk::EXPAND | Gtk::FILL, Gtk::SHRINK);
     //Connect signal handler:
     signalResolutionCombo = resolution_combo->signal_changed().connect(
         sigc::mem_fun(*this, &GtkWindow::on_resolution_combo_changed));
@@ -198,7 +200,7 @@ GtkWindow::GtkWindow(
         fps_combo->append_text(out.str());
     }
     fps_combo->set_active(fps);
-    videoTable->attach(*fps_combo, 1, 2, i, i+1);
+    videoTable->attach(*fps_combo, 1, 2, i, i+1, Gtk::EXPAND | Gtk::FILL, Gtk::SHRINK);
     //Connect signal handler:
     signalFpsCombo = fps_combo->signal_changed().connect(
         sigc::mem_fun(*this, &GtkWindow::on_fps_combo_changed));
@@ -216,7 +218,7 @@ GtkWindow::GtkWindow(
         audio_dev_combo->append_text(audio->listAudioDev[j].name);
     }
     audio_dev_combo->set_active(0);
-    audioTable->attach(*audio_dev_combo, 1, 2, i, i+1);
+    audioTable->attach(*audio_dev_combo, 1, 2, i, i+1, Gtk::EXPAND | Gtk::FILL, Gtk::SHRINK);
     //Connect signal handler:
     audio_dev_combo->signal_changed().connect(sigc::mem_fun(*this, &GtkWindow::on_audio_dev_combo_changed));
     
@@ -243,23 +245,44 @@ GtkWindow::~GtkWindow()
 
 void GtkWindow::on_check_button_clicked(Gtk::CheckButton* checkButton, int cindex)
 {
-    std::cout << "The Button for control " << cindex << " was clicked: state="
-        << (checkButton->get_active() ? "true" : "false")
-        << std::endl;
+    int val = checkButton->get_active() ? 1 : 0;
+    if(!(dev->set_control_val (cindex, val)))
+            std::cout << dev->listControls[cindex].name << " = " << val << std::endl;
+    else
+    {
+        std::cerr << "ERROR:couldn't set " << dev->listControls[cindex].name << " = " << val << std::endl;
+        dev->get_control_val (cindex, &val);
+        if(val) checkButton->set_active(true);
+        else checkButton->set_active(false);
+    }
 }
 
 void GtkWindow::on_combo_changed(Gtk::ComboBoxText* comboBox, int cindex)
 {
-    std::cout << "combo from control " << cindex 
-    << " changed to index " << comboBox->get_active_row_number()
-    << std::endl;
+    int val = comboBox->get_active_row_number();
+    
+   if(!(dev->set_control_val (cindex, val)))
+            std::cout << dev->listControls[cindex].name << " = " << val << std::endl;
+    else
+    {
+        std::cerr << "ERROR:couldn't set " << dev->listControls[cindex].name << " = " << val << std::endl;
+        dev->get_control_val (cindex, &val);
+        comboBox->set_active(val);
+    }
 }
 
 void GtkWindow::on_hscale_value_changed(Gtk::HScale* hScale, int cindex)
 {
-    std::cout << "value for control " << cindex 
-    << " changed to " << hScale->get_value()
-    << std::endl;
+    int val = hScale->get_value();
+    
+    if(!(dev->set_control_val (cindex, val)))
+            std::cout << dev->listControls[cindex].name << " = " << val << std::endl;
+    else
+    {
+        std::cerr << "ERROR:couldn't set " << dev->listControls[cindex].name << " = " << val << std::endl;
+        dev->get_control_val (cindex, &val);
+        hScale->set_value(val);
+    }
 }
 
 void GtkWindow::on_video_format_combo_changed()
@@ -293,7 +316,8 @@ void GtkWindow::on_video_format_combo_changed()
     resolution_combo->set_active(resolution);
 
     //apply changes
-    std::cout << "format changed to index " << format << std::endl;  
+    std::cout << "format changed to index " << format << std::endl;
+    
 }
 
 void GtkWindow::on_resolution_combo_changed()
@@ -331,6 +355,7 @@ void GtkWindow::on_resolution_combo_changed()
     
     //apply changes
     std::cout << "resolution changed to index " << resolution << std::endl;
+    th_video->set_format(dev->listVidFormats[format].fourcc, width, height);
 }
 
 void GtkWindow::on_fps_combo_changed()
@@ -344,6 +369,7 @@ void GtkWindow::on_fps_combo_changed()
     
     //apply changes
     std::cout << "fps changed to index " << fps << std::endl;
+    dev->set_fps(&frate);
 }
 
 void GtkWindow::on_audio_dev_combo_changed()
@@ -353,12 +379,21 @@ void GtkWindow::on_audio_dev_combo_changed()
 
 void GtkWindow::on_button_pic()
 {
-    std::cout << "The Picture Button was clicked\n";
+    th_video->cap_image("file_gvideo.jpg");
 }
 
 void GtkWindow::on_button_vid()
 {
-    std::cout << "The Video Button was clicked\n";
+    if(th_video->is_capturing_video())
+    {
+        gv_Button_vid->set_label("cap video");
+        th_video->stop_video_capture();
+    }
+    else
+    {
+        gv_Button_vid->set_label("stop video");
+        th_video->start_video_capture(audio, audio_dev_combo->get_active(), 0, 0);
+    }
 }
 
 void GtkWindow::on_button_quit()

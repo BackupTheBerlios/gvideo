@@ -29,13 +29,9 @@
 #include <iostream>
 #include <string.h>
 #include "libgvideo/gvideo.h"
-#include "libgvrender/render.h"
 #include "libgvaudio/GVAudio.h"
-#include "libgvencoder/GVJpeg_encoder.h"
-#include "libgvencoder/GVCodec.h"
-#include "libgvencoder/GVMatroska.h"
 #include "gv_gtk_window.h"
-
+#include "gv_video_threads.h"
 
 using namespace std;
 
@@ -224,6 +220,8 @@ int main (int argc, char *argv[])
 {
     //init gtk
     Gtk::Main kit(argc, argv);
+    gvideogtk::GVVideoThreads* th_video = NULL;
+    gvideogtk::GtkWindow* window = NULL;
     
     int i = 0;
     int j = 0;
@@ -231,7 +229,7 @@ int main (int argc, char *argv[])
     int framecount = 0;
     UINT64 timestamp = 0;
     string fourcc;
-    int width, height;
+    int width=0, height=0;
     libgvideo::GVFps* fps = new libgvideo::GVFps;
     //gvcommon::GVString* gvstr = new gvcommon::GVString;
     //parse command line options
@@ -267,8 +265,6 @@ int main (int argc, char *argv[])
     
     //get device
     libgvideo::GVDevice* dev = new libgvideo::GVDevice(options->opts->devicename, options->opts->verbose);
-    libgvideo::GVBuffer* buf = NULL;
-    libgvideo::VidBuff*  framebuf = NULL;
     libgvaudio::GVAudio* audio = new libgvaudio::GVAudio(verbose);
 
     int format_index = 0;
@@ -278,28 +274,43 @@ int main (int argc, char *argv[])
     if(options->opts->fourcc.size() > 0)
     {
         format_index = dev->get_format_index(options->opts->fourcc);
-        if (format_index < 0) format_index = 0;
+        if (format_index < 0) 
+            format_index = 0;
     }
+    fourcc = dev->listVidFormats[format_index].fourcc;
 
     if((options->opts->width > 0) && (options->opts->height > 0))
     {
         //validate resolutions
         resolution_index = dev->get_res_index(format_index, options->opts->width, options->opts->height);
-        if(resolution_index < 0) resolution_index = 0;
+        if(resolution_index < 0) 
+            resolution_index = dev->listVidFormats[format_index].listVidCap.size() - 1;
     }
+    width = dev->listVidFormats[format_index].listVidCap[resolution_index].width;
+    height = dev->listVidFormats[format_index].listVidCap[resolution_index].height;
     
     if(options->opts->fps > 0) 
     { 
         fps->num = 1;
         fps->denom = options->opts->fps;
         fps_index = dev->get_fps_index(format_index, resolution_index, fps);
-        if(fps_index < 0) fps_index = 0;
+        if(fps_index < 0) 
+            fps_index = dev->listVidFormats[format_index].listVidCap[resolution_index].fps.size() - 1;
     }
+
+    if(dev->set_format(fourcc, width, height) < 0)
+    {
+        cerr << "couldn't set format: " << fourcc << " (" << width << "x" << height <<")\n";
+        goto finish;
+    }
+    else
+        th_video = new gvideogtk::GVVideoThreads(dev);
     
     //main window
-    gvideogtk::GtkWindow* window = new gvideogtk::GtkWindow( 
+    window = new gvideogtk::GtkWindow( 
         dev, 
-        audio, 
+        audio,
+        th_video,
         format_index, 
         resolution_index, 
         fps_index );
@@ -309,16 +320,16 @@ int main (int argc, char *argv[])
 
     //remove window
     delete window;
-    
+    delete th_video;
+
   finish: 
     if(verbose) cout << "deleting dev\n"; 
     delete dev;
     if(verbose) cout << "deleting options\n";
     delete options;
-    if(verbose) cout << "deleting buf\n";
-    delete framebuf;
-    delete buf;
+    
     if(verbose) cout << "deleting audio\n";
     delete audio;
     return (0);
 }
+

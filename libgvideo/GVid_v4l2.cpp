@@ -863,9 +863,12 @@ int GVDevice::queue_buff()
 int GVDevice::set_format(std::string fourcc, int twidth, int theight)
 {
     int ret = 0;
+    if(streaming) stream_off();
+    
     if(stream_ready)
     {
         //cleanup previous format allocations
+        clean_buffers();
     }
 
     int format_index = get_format_index(fourcc);
@@ -915,6 +918,7 @@ int GVDevice::set_format(std::string fourcc, int twidth, int theight)
     
     if(fps->num > 0)
         set_framerate ();
+    setFPS = false;
     
     switch (method)
     {

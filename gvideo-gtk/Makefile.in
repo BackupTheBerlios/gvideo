@@ -51,7 +51,8 @@ CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
 am__objects_1 =
-am__objects_2 = GVideo.$(OBJEXT) gv_gtk_window.$(OBJEXT)
+am__objects_2 = GVideo.$(OBJEXT) gv_gtk_window.$(OBJEXT) \
+	gv_video_threads.$(OBJEXT)
 am_gvideo_gtk_OBJECTS = $(am__objects_1) $(am__objects_2)
 gvideo_gtk_OBJECTS = $(am_gvideo_gtk_OBJECTS)
 am__DEPENDENCIES_1 =
@@ -59,7 +60,8 @@ gvideo_gtk_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 	../$(GVIDEO_LIBRARY_NAME)/$(GVIDEO_LIBRARY_NAME).la \
 	../$(GVRENDER_LIBRARY_NAME)/$(GVRENDER_LIBRARY_NAME).la \
 	../$(GVAUDIO_LIBRARY_NAME)/$(GVAUDIO_LIBRARY_NAME).la \
-	../$(GVENCODER_LIBRARY_NAME)/$(GVENCODER_LIBRARY_NAME).la
+	../$(GVENCODER_LIBRARY_NAME)/$(GVENCODER_LIBRARY_NAME).la \
+	../$(GVTHREADS_LIBRARY_NAME)/$(GVTHREADS_LIBRARY_NAME).la
 gvideo_gtk_LINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
 	$(CXXFLAGS) $(gvideo_gtk_LDFLAGS) $(LDFLAGS) -o $@
@@ -141,19 +143,23 @@ GVIDEOGTK_LIBS = @GVIDEOGTK_LIBS@
 GVIDEOLIB_CFLAGS = @GVIDEOLIB_CFLAGS@
 GVIDEOLIB_LIBS = @GVIDEOLIB_LIBS@
 GVIDEO_API_VERSION = @GVIDEO_API_VERSION@
+GVIDEO_CMD_NAME = @GVIDEO_CMD_NAME@
+GVIDEO_CMD_VERSION = @GVIDEO_CMD_VERSION@
 GVIDEO_GTK_NAME = @GVIDEO_GTK_NAME@
 GVIDEO_GTK_VERSION = @GVIDEO_GTK_VERSION@
 GVIDEO_LD_NAME = @GVIDEO_LD_NAME@
 GVIDEO_LIBRARY_NAME = @GVIDEO_LIBRARY_NAME@
 GVIDEO_LIBRARY_VERSION = @GVIDEO_LIBRARY_VERSION@
-GVIDEO_NAME = @GVIDEO_NAME@
-GVIDEO_VERSION = @GVIDEO_VERSION@
 GVRENDERLIB_CFLAGS = @GVRENDERLIB_CFLAGS@
 GVRENDERLIB_LIBS = @GVRENDERLIB_LIBS@
 GVRENDER_API_VERSION = @GVRENDER_API_VERSION@
 GVRENDER_LD_NAME = @GVRENDER_LD_NAME@
 GVRENDER_LIBRARY_NAME = @GVRENDER_LIBRARY_NAME@
 GVRENDER_LIBRARY_VERSION = @GVRENDER_LIBRARY_VERSION@
+GVTHREADS_API_VERSION = @GVTHREADS_API_VERSION@
+GVTHREADS_LD_NAME = @GVTHREADS_LD_NAME@
+GVTHREADS_LIBRARY_NAME = @GVTHREADS_LIBRARY_NAME@
+GVTHREADS_LIBRARY_VERSION = @GVTHREADS_LIBRARY_VERSION@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
@@ -269,8 +275,8 @@ AM_CFLAGS = \
             -D_REENTRANT\
             -Wall
 
-h_sources = gv_gtk_window.h
-cpp_sources = GVideo.cpp gv_gtk_window.cpp
+h_sources = gv_gtk_window.h gv_video_threads.h
+cpp_sources = GVideo.cpp gv_gtk_window.cpp gv_video_threads.cpp
 gvideo_gtk_SOURCES = $(h_sources) $(cpp_sources)
 gvideo_gtk_CFLAGS = $(GVIDEOGTK_CFLAGS)
 gvideo_gtk_LDFLAGS = $(LIBINTL)
@@ -278,7 +284,8 @@ gvideo_gtk_LDADD = $(GVIDEOGTK_LIBS) \
                    ../$(GVIDEO_LIBRARY_NAME)/$(GVIDEO_LIBRARY_NAME).la \
                    ../$(GVRENDER_LIBRARY_NAME)/$(GVRENDER_LIBRARY_NAME).la \
                    ../$(GVAUDIO_LIBRARY_NAME)/$(GVAUDIO_LIBRARY_NAME).la \
-                   ../$(GVENCODER_LIBRARY_NAME)/$(GVENCODER_LIBRARY_NAME).la
+                   ../$(GVENCODER_LIBRARY_NAME)/$(GVENCODER_LIBRARY_NAME).la \
+                   ../$(GVTHREADS_LIBRARY_NAME)/$(GVTHREADS_LIBRARY_NAME).la
 
 all: all-am
 
@@ -369,6 +376,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/GVideo.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gv_gtk_window.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gv_video_threads.Po@am__quote@
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

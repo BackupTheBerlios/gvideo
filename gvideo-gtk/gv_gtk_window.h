@@ -42,69 +42,72 @@
 #include <vector>
 #include "libgvideo/GVid_v4l2.h"
 #include "libgvaudio/GVAudio.h"
+#include "gv_video_threads.h"
 
 START_GVIDEOGTK_NAMESPACE
 
 class GtkWindow : public Gtk::Window
 {
-protected:
-  //Signal handlers:
-  void on_button_quit();
-  void on_button_pic();
-  void on_button_vid();
-  void on_check_button_clicked(Gtk::CheckButton* checkButton, int cindex);
-  void on_combo_changed(Gtk::ComboBoxText* comboBox, int cindex);
-  void on_hscale_value_changed(Gtk::HScale* hScale, int cindex);
-  void on_video_format_combo_changed();
-  void on_resolution_combo_changed();
-  sigc::connection signalResolutionCombo;
-  void on_fps_combo_changed();
-  sigc::connection signalFpsCombo;
-  void on_audio_dev_combo_changed();
-  //void on_notebook_switch_page(GtkNotebookPage* page, guint page_num);
+  protected:
+    //Signal handlers:
+    void on_button_quit();
+    void on_button_pic();
+    void on_button_vid();
+    void on_check_button_clicked(Gtk::CheckButton* checkButton, int cindex);
+    void on_combo_changed(Gtk::ComboBoxText* comboBox, int cindex);
+    void on_hscale_value_changed(Gtk::HScale* hScale, int cindex);
+    void on_video_format_combo_changed();
+    void on_resolution_combo_changed();
+    sigc::connection signalResolutionCombo;
+    void on_fps_combo_changed();
+    sigc::connection signalFpsCombo;
+    void on_audio_dev_combo_changed();
+    //void on_notebook_switch_page(GtkNotebookPage* page, guint page_num);
+      
+    //Child widgets:
+    Gtk::Notebook* gv_Notebook;
+    Gtk::Label* gv_ImageLabel;
+    Gtk::Label* gv_VideoLabel;
+    Gtk::Label* gv_AudioLabel;
+    Gtk::Table* controlTable;
+    Gtk::Table* videoTable;
+    Gtk::Table* audioTable;
+      
+    Gtk::Label  *fps_label;
+    Gtk::ComboBoxText* fps_combo;
+    Gtk::Label  *video_format_label;
+    Gtk::ComboBoxText* video_format_combo;
+    Gtk::Label  *resolution_label;
+    Gtk::ComboBoxText* resolution_combo;
+    
+    Gtk::Label  *audio_dev_label;
+    Gtk::ComboBoxText* audio_dev_combo;
+    
+    Gtk::VBox* gv_VBox;
+    Gtk::HButtonBox* gv_ButtonBox;
+    Gtk::Button* gv_Button_pic;
+    Gtk::Button* gv_Button_vid;
+    Gtk::Button* gv_Button_Quit;
+    
+    //video defs
+    int width;
+    int height;
+    libgvideo::GVFps frate;
+    int format, resolution, fps;
+    libgvideo::GVDevice* dev; 
+    libgvaudio::GVAudio* audio;
+    GVVideoThreads* th_video;
+    
+  public:
   
-  //Child widgets:
-  Gtk::Notebook* gv_Notebook;
-  Gtk::Label* gv_ImageLabel;
-  Gtk::Label* gv_VideoLabel;
-  Gtk::Label* gv_AudioLabel;
-  Gtk::Table* controlTable;
-  Gtk::Table* videoTable;
-  Gtk::Table* audioTable;
-  
-  Gtk::Label  *fps_label;
-  Gtk::ComboBoxText* fps_combo;
-  Gtk::Label  *video_format_label;
-  Gtk::ComboBoxText* video_format_combo;
-  Gtk::Label  *resolution_label;
-  Gtk::ComboBoxText* resolution_combo;
-  
-  Gtk::Label  *audio_dev_label;
-  Gtk::ComboBoxText* audio_dev_combo;
-  
-  Gtk::VBox* gv_VBox;
-  Gtk::HButtonBox* gv_ButtonBox;
-  Gtk::Button* gv_Button_pic;
-  Gtk::Button* gv_Button_vid;
-  Gtk::Button* gv_Button_Quit;
-  
-  //video defs
-  int width;
-  int height;
-  libgvideo::GVFps frate;
-  int format, resolution, fps;
-  libgvideo::GVDevice *dev; 
-  libgvaudio::GVAudio *audio; 
-  
-public:
-  
-  GtkWindow( libgvideo::GVDevice *_dev, 
-        libgvaudio::GVAudio *_audio, 
+    GtkWindow( libgvideo::GVDevice* _dev, 
+        libgvaudio::GVAudio* _audio,
+        GVVideoThreads* _th_video = NULL,
         int _format = 0, 
         int _resolution = 0, 
         int _fps = 0);
         
-  virtual ~GtkWindow();
+    virtual ~GtkWindow();
 };
 
 END_GVIDEOGTK_NAMESPACE
