@@ -295,32 +295,38 @@ void GVVideoRender::run()
     
     while( !( quit || video->quit_event() ) )
     {
-        buf->produce_nextFrame(pix_order, framebuf);
-        video->render(framebuf->yuv_frame);
-        if((framebuf->time_stamp - timestamp) > 2 * GV_NSEC_PER_SEC)
-        {
-            float frate = (dev->get_framecount() - framecount) / 2;
-            std::ostringstream s;
-            s << "Video fps:" << frate;
-            video->setCaption(s.str());
-            framecount= dev->get_framecount();
-            timestamp = framebuf->time_stamp;
+        if(buf->produce_nextFrame(pix_order, framebuf) < 0)
+        {  
+         // don't render
         }
-        if (capture_image)
+        else
         {
-            libgvideo::GVImage *img = new libgvideo::GVImage;
-            UINT32 size = width*height/2;
-            UINT8* jpg_buff = new UINT8 [size];
-            libgvencoder::GVJpeg* jpeg = new libgvencoder::GVJpeg(width, height);
-            size = jpeg->encode (framebuf->yuv_frame, jpg_buff, true);
-            img->save_buffer(image_filename.c_str(), jpg_buff, size);
-            delete jpeg;
-            delete[] jpg_buff;
-            delete img;
-            capture_image = false;
+            video->render(framebuf->yuv_frame);
+            if((framebuf->time_stamp - timestamp) > 2 * GV_NSEC_PER_SEC)
+            {
+                float frate = (dev->get_framecount() - framecount) / 2;
+                std::ostringstream s;
+                s << "Video fps:" << frate;
+                video->setCaption(s.str());
+                framecount= dev->get_framecount();
+                timestamp = framebuf->time_stamp;
+            }
+            if (capture_image)
+            {
+                libgvideo::GVImage *img = new libgvideo::GVImage;
+                UINT32 size = width*height/2;
+                UINT8* jpg_buff = new UINT8 [size];
+                libgvencoder::GVJpeg* jpeg = new libgvencoder::GVJpeg(width, height);
+                size = jpeg->encode (framebuf->yuv_frame, jpg_buff, true);
+                img->save_buffer(image_filename.c_str(), jpg_buff, size);
+                delete jpeg;
+                delete[] jpg_buff;
+                delete img;
+                capture_image = false;
+            }
+            if (!capturing_video)
+                buf->consume_nextFrame(framebuf);
         }
-        if (!capturing_video)
-            buf->consume_nextFrame(framebuf);
         
         video->poll_events();
         while(!video->key_events_empty())
