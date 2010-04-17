@@ -64,7 +64,7 @@ void GVVideoCapture::run()
     int format = dev->get_format();
     int width = dev->get_width();
     int height = dev->get_height();
-    
+    UINT64 frame_count = 0;
     //update fps
     dev->get_fps(&fps);
     
@@ -221,13 +221,14 @@ void GVVideoCapture::run()
             }
             size = encoder->encode_video_frame (capbuf->yuv_frame);
             matroska->add_VideoFrame(video_out_buff, size, vts);
+            frame_count++;
         }
     }
     /* stop the audio stream*/
     audio->stopStream();
         
     /*calc and set the default video frame duration (fps)*/
-    vfdur = vts / dev->get_framecount();
+    vfdur = vts / frame_count;
     matroska->set_DefDuration(vfdur);
         
     /*clean up*/

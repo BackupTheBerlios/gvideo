@@ -217,7 +217,8 @@ GtkWindow::GtkWindow(
     {
         audio_dev_combo->append_text(audio->listAudioDev[j].name);
     }
-    audio_dev_combo->set_active(0);
+    audio_dev_index = 0;
+    audio_dev_combo->set_active(audio_dev_index);
     audioTable->attach(*audio_dev_combo, 1, 2, i, i+1, Gtk::EXPAND | Gtk::FILL, Gtk::SHRINK);
     //Connect signal handler:
     audio_dev_combo->signal_changed().connect(sigc::mem_fun(*this, &GtkWindow::on_audio_dev_combo_changed));
@@ -374,7 +375,7 @@ void GtkWindow::on_fps_combo_changed()
 
 void GtkWindow::on_audio_dev_combo_changed()
 {
-
+    audio_dev_index = audio_dev_combo->get_active_row_number();
 }
 
 void GtkWindow::on_button_pic()
@@ -392,7 +393,7 @@ void GtkWindow::on_button_vid()
     else
     {
         gv_Button_vid->set_label("stop video");
-        th_video->start_video_capture(audio, audio_dev_combo->get_active(), 0, 0);
+        th_video->start_video_capture(audio, audio_dev_index, 0, 0);
     }
 }
 

@@ -94,7 +94,8 @@ class GtkWindow : public Gtk::Window
     int height;
     libgvideo::GVFps frate;
     int format, resolution, fps;
-    libgvideo::GVDevice* dev; 
+    libgvideo::GVDevice* dev;
+    int audio_dev_index;
     libgvaudio::GVAudio* audio;
     GVVideoThreads* th_video;
     
