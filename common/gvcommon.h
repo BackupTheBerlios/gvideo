@@ -197,7 +197,7 @@ class GVSleep
     pthread_mutex_t *mutex;
 
   public:
-    GVSleep(int sleep_ms, bool* _var=NULL, pthread_mutex_t * _mutex=NULL, int _n_loops=30)
+    GVSleep(int sleep_ms = 1, bool* _var=NULL, pthread_mutex_t * _mutex=NULL, int _n_loops=30)
     {
         sleep_us = sleep_ms * 1000; /*convert to microseconds*/
         var = _var;
@@ -228,6 +228,11 @@ class GVSleep
         }
         
         return (n);
+    };
+
+    void ms_sleep(long ms)
+    {
+        usleep(ms * 1000);
     };
 };
 

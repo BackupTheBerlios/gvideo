@@ -62,6 +62,8 @@ class GtkWindow : public Gtk::Window
     void on_fps_combo_changed();
     sigc::connection signalFpsCombo;
     void on_audio_dev_combo_changed();
+    void on_vcodec_combo_changed();
+    void on_acodec_combo_changed();
     //void on_notebook_switch_page(GtkNotebookPage* page, guint page_num);
       
     //Child widgets:
@@ -79,9 +81,14 @@ class GtkWindow : public Gtk::Window
     Gtk::ComboBoxText* video_format_combo;
     Gtk::Label  *resolution_label;
     Gtk::ComboBoxText* resolution_combo;
+    Gtk::Label  *vcodec_label;
+    Gtk::ComboBoxText* vcodec_combo;
     
     Gtk::Label  *audio_dev_label;
     Gtk::ComboBoxText* audio_dev_combo;
+    Gtk::Label  *acodec_label;
+    Gtk::ComboBoxText* acodec_combo;
+
     
     Gtk::VBox* gv_VBox;
     Gtk::HButtonBox* gv_ButtonBox;
@@ -96,6 +103,8 @@ class GtkWindow : public Gtk::Window
     int format, resolution, fps;
     libgvideo::GVDevice* dev;
     int audio_dev_index;
+    unsigned vcodec_ind;
+    unsigned acodec_ind;
     libgvaudio::GVAudio* audio;
     GVVideoThreads* th_video;
     

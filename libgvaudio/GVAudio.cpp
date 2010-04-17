@@ -230,6 +230,9 @@ int GVAudio::stopStream()
     complete = true;
     pthread_mutex_unlock( &mutex );
     //now we should wait a while for streaming = false
+    gvcommon::GVSleep sleeper(10, &streaming, &mutex, 30);
+    if(!sleeper.wait_ms(false))
+        std::cerr << "libgvaudio: audio is still streaming\n";
     
     if(stream || streaming)
     {
@@ -262,6 +265,7 @@ int GVAudio::stopStream()
             ret = -1;
         }
     }
+
     streaming = false;
     stream = NULL;
     return ret;
@@ -269,7 +273,6 @@ int GVAudio::stopStream()
 
 int GVAudio::startStream(int samp_rate/*=0*/, int chan/*=0*/, int frm_size/*=0*/, UINT64 timestamp_ref /*=0*/)
 {
-    stream_ready = false;
     
     if(!enabled)
     {
@@ -281,6 +284,19 @@ int GVAudio::startStream(int samp_rate/*=0*/, int chan/*=0*/, int frm_size/*=0*/
     {
         stopStream();
     }
+
+    stream_ready = false;
+    complete = false;
+    streaming = false;
+    enabled = true;
+    
+    sampleIndex = 0;
+    
+    time_stamp = 0;
+           
+    pIndex = 0;
+    cIndex = 0;   
+    
     
     ts_ref = timestamp_ref;
     
@@ -320,6 +336,7 @@ int GVAudio::startStream(int samp_rate/*=0*/, int chan/*=0*/, int frm_size/*=0*/
     {
         audio_buff[i].f_frame = new float[max_samples];
         audio_buff[i].samples = max_samples;
+        audio_buff[i].processed = true;
     }
     sampleIndex = 0;
     

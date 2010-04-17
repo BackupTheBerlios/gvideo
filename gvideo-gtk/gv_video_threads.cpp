@@ -288,6 +288,7 @@ void GVVideoRender::run()
     int width = dev->get_width();
     int height = dev->get_height();
     std::cout << "format is " << format << " " << width << "x" << height << std::endl;
+    gvcommon::GVSleep sleeper;
     
     libgvrender::GVSdlRender * video = new libgvrender::GVSdlRender(width, height);
     std::cout << "on video window press:\n  Q to exit\n";
@@ -296,6 +297,7 @@ void GVVideoRender::run()
     
     while( !( quit || video->quit_event() ) )
     {
+        sleeper.ms_sleep(buf->best_ms_delay());
         if(buf->produce_nextFrame(pix_order, framebuf) < 0)
         {  
          // don't render

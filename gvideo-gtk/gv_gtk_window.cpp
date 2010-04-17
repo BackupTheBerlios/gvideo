@@ -34,6 +34,7 @@
 #include "gv_gtk_window.h"
 #include "gvcommon.h"
 #include "libgvideo/GVid_v4l2.h"
+#include "libgvencoder/GVCodec.h"
 
 START_GVIDEOGTK_NAMESPACE
 
@@ -51,6 +52,9 @@ GtkWindow::GtkWindow(
     format = _format;
     resolution = _resolution;
     fps = _fps;
+
+    vcodec_ind = 0;
+    acodec_ind = 0;
     
     gv_ImageLabel= new Gtk::Label("Image");
     gv_VideoLabel= new Gtk::Label("Video");
@@ -205,7 +209,26 @@ GtkWindow::GtkWindow(
     signalFpsCombo = fps_combo->signal_changed().connect(
         sigc::mem_fun(*this, &GtkWindow::on_fps_combo_changed));
 
-    //Audio definitions
+    //Encoder definitions
+    /*get a new encoder instance*/
+    libgvencoder::GVCodec*  encoder= new libgvencoder::GVCodec();
+    
+    //Video Codec
+    i++;
+    vcodec_label= new Gtk::Label("Video Codec: ");
+    videoTable->attach(*vcodec_label, 0, 1, i, i+1);
+    vcodec_combo = new Gtk::ComboBoxText();
+    
+    j = 0;
+    for (j=0; j<encoder->vcodec_list.size(); j++)
+    {
+        vcodec_combo->append_text(encoder->vcodec_list[j].description);
+    }
+    vcodec_combo->set_active(vcodec_ind);
+    videoTable->attach(*vcodec_combo, 1, 2, i, i+1, Gtk::EXPAND | Gtk::FILL, Gtk::SHRINK);
+    //Connect signal handler:
+    vcodec_combo->signal_changed().connect(
+        sigc::mem_fun(*this, &GtkWindow::on_vcodec_combo_changed));
     
     //audio devices
     i = 0;
@@ -222,6 +245,25 @@ GtkWindow::GtkWindow(
     audioTable->attach(*audio_dev_combo, 1, 2, i, i+1, Gtk::EXPAND | Gtk::FILL, Gtk::SHRINK);
     //Connect signal handler:
     audio_dev_combo->signal_changed().connect(sigc::mem_fun(*this, &GtkWindow::on_audio_dev_combo_changed));
+
+    //Audio definitions
+    i++;
+    acodec_label= new Gtk::Label("Audio Codec: ");
+    audioTable->attach(*acodec_label, 0, 1, i, i+1);
+    acodec_combo = new Gtk::ComboBoxText();
+    
+    j = 0;
+    for (j=0; j<encoder->acodec_list.size(); j++)
+    {
+        acodec_combo->append_text(encoder->acodec_list[j].description);
+    }
+    acodec_combo->set_active(acodec_ind);
+    audioTable->attach(*acodec_combo, 1, 2, i, i+1, Gtk::EXPAND | Gtk::FILL, Gtk::SHRINK);
+    //Connect signal handler:
+    acodec_combo->signal_changed().connect(
+        sigc::mem_fun(*this, &GtkWindow::on_acodec_combo_changed));
+        
+    delete encoder;
     
     //Add the Notebook pages:
     gv_Notebook->append_page(*controlTable, *gv_ImageLabel);
@@ -373,6 +415,16 @@ void GtkWindow::on_fps_combo_changed()
     dev->set_fps(&frate);
 }
 
+void GtkWindow::on_vcodec_combo_changed()
+{
+    vcodec_ind = vcodec_combo->get_active_row_number();
+}
+
+void GtkWindow::on_acodec_combo_changed()
+{
+    acodec_ind = acodec_combo->get_active_row_number();
+}
+
 void GtkWindow::on_audio_dev_combo_changed()
 {
     audio_dev_index = audio_dev_combo->get_active_row_number();
@@ -393,7 +445,7 @@ void GtkWindow::on_button_vid()
     else
     {
         gv_Button_vid->set_label("stop video");
-        th_video->start_video_capture(audio, audio_dev_index, 0, 0);
+        th_video->start_video_capture(audio, audio_dev_index, vcodec_ind, acodec_ind);
     }
 }
 

@@ -422,4 +422,33 @@ int GVBuffer::consume_nextFrame(VidBuff *frame)
     return -1;
 }
 
+int GVBuffer::best_ms_delay()
+{
+    int diff_ind = 0;
+	int sched_sleep = 0;
+
+	//try to balance buffer overrun in read/write operations 
+	pthread_mutex_lock( &mutex );
+	if(pIndex >= cIndex)
+		diff_ind = pIndex - cIndex;
+	else
+		diff_ind = (_frame_buff_size - cIndex) + pIndex;
+    pthread_mutex_unlock( &mutex );
+    
+	if(diff_ind <= (_frame_buff_size - (_frame_buff_size/2))) 
+	    sched_sleep = 0; /* full throttle */
+	else if (diff_ind <= (_frame_buff_size - (_frame_buff_size/3))) 
+	    sched_sleep = (diff_ind-(_frame_buff_size/2)) * 2;
+	else if (diff_ind <= (_frame_buff_size - (_frame_buff_size/4))) 
+	    sched_sleep = (diff_ind-(_frame_buff_size/2)) * 3;
+	else if (diff_ind <= (_frame_buff_size - (_frame_buff_size/5))) 
+	    sched_sleep = (diff_ind-(_frame_buff_size/2)) * 4;
+	else if (diff_ind <= (_frame_buff_size - (_frame_buff_size/6))) 
+	    sched_sleep = (diff_ind-(_frame_buff_size/2)) * 5;
+	else 
+	    sched_sleep = (diff_ind-(_frame_buff_size/2)) * 6;
+	
+	return sched_sleep;
+}
+
 END_LIBGVIDEO_NAMESPACE

@@ -75,6 +75,7 @@ class GVBuffer
     int frame_decode(VidBuff *frame, int pix_order = -1);
     int produce_nextFrame(int pix_order = -1, VidBuff *frame = NULL);
     int consume_nextFrame(VidBuff *frame);
+    int best_ms_delay();
 };
 
 END_LIBGVIDEO_NAMESPACE

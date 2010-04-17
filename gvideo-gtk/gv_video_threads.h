@@ -90,6 +90,7 @@ class GVVideoRender: public libgvthreads::GVThread
     bool set_fps;
     bool capture_image;
     bool capturing_video;
+    
 
   public:
     GVVideoRender(
