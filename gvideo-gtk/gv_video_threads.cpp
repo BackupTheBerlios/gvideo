@@ -37,6 +37,7 @@ START_GVIDEOGTK_NAMESPACE
 GVVideoCapture::GVVideoCapture(
     libgvideo::GVDevice* _dev,
     libgvaudio::GVAudio* _audio,
+    libgvencoder::GVCodec* _encoder,
     libgvideo::GVBuffer* _buf,
     int aindex,
     unsigned _vcodec_ind,
@@ -46,6 +47,7 @@ GVVideoCapture::GVVideoCapture(
 {
     dev = _dev;
     audio = _audio;
+    encoder = _encoder;
     buf = _buf;
     audio_dev_index = aindex;
     vcodec_ind = _vcodec_ind;
@@ -73,9 +75,7 @@ void GVVideoCapture::run()
         audio = new libgvaudio::GVAudio();
     /*get a new audio buffer*/
     libgvaudio::AudBuff *aud_buf = new libgvaudio::AudBuff;
-    /*get a new encoder instance*/
-    libgvencoder::GVCodec*  encoder= new libgvencoder::GVCodec();
-        
+    
     /*get audio parameters*/
     int adev = audio->setDevice(audio_dev_index);
     std::cout << "using audio device id:" << adev << std::endl;
@@ -99,7 +99,6 @@ void GVVideoCapture::run()
         std::cerr << "couldn't audio open codec (ind=" << acodec_ind << ")\n";
         /*clean up*/
         delete[] audio_out_buff;
-        delete encoder;
         delete aud_buf;
         capturing_video = false;
         return;
@@ -123,7 +122,6 @@ void GVVideoCapture::run()
         /*clean up*/
         delete[] video_out_buff;
         delete[] audio_out_buff;
-        delete encoder;
         delete aud_buf;
         capturing_video = false;
         return;
@@ -177,13 +175,15 @@ void GVVideoCapture::run()
     buf->consume_nextFrame(capbuf);
     timestamp_f0 = capbuf->time_stamp;
     vts = 0;
-            
-    size = encoder->encode_video_frame (capbuf->yuv_frame);
-    matroska->add_VideoFrame(video_out_buff, size, vts);
-        
+
     std::cout << "ref ts=" << timestamp_f0 << std::endl;
     /*start audio stream*/
     audio->startStream(samprate, channels, frame_size);
+         
+    size = encoder->encode_video_frame (capbuf->yuv_frame);
+    matroska->add_VideoFrame(video_out_buff, size, vts);
+        
+    
 
     while( capture_video )
     {
@@ -236,10 +236,9 @@ void GVVideoCapture::run()
     std::cout << "delete out buff\n";
     delete[] video_out_buff;
     delete[] audio_out_buff;
-    std::cout << "delete encoder buff\n";
-    delete encoder;
     std::cout << "delete aud buff\n";
     delete aud_buf;
+    encoder->close_codecs();
     capturing_video = false;
 }
 
@@ -328,7 +327,13 @@ void GVVideoRender::run()
                 capture_image = false;
             }
             if (!capturing_video)
-                buf->consume_nextFrame(framebuf);
+            {
+                //consume all remaining produced frames
+                while(buf->consume_nextFrame(framebuf)>=0)
+                {
+                    //do nothing
+                }
+            }
         }
         
         video->poll_events();
@@ -356,10 +361,13 @@ void GVVideoRender::run()
     delete framebuf;
 }
 
-GVVideoThreads::GVVideoThreads(libgvideo::GVDevice* _dev)
+GVVideoThreads::GVVideoThreads(
+    libgvideo::GVDevice* _dev,
+    libgvencoder::GVCodec* _encoder)
 {
     int err = 0;
     dev = _dev;
+    encoder = _encoder;
     //set a 30 frame buffer
     buf = new libgvideo::GVBuffer(dev, 30);
     
@@ -419,13 +427,17 @@ bool GVVideoThreads::is_capturing_video()
     return capturing_video;
 }
 
-void GVVideoThreads::start_video_capture(libgvaudio::GVAudio* _audio, int audio_device, unsigned vcodec_index, unsigned acodec_index)
+void GVVideoThreads::start_video_capture(
+    libgvaudio::GVAudio* _audio, 
+    int audio_device, 
+    unsigned vcodec_index, 
+    unsigned acodec_index)
 {
     int err = 0;
     capturing_video = true;
     th_video_render->set_cap_video();
    
-    th_video_capture = new GVVideoCapture(dev, _audio, buf, audio_device, vcodec_index, acodec_index, fps);
+    th_video_capture = new GVVideoCapture(dev, _audio, encoder, buf, audio_device, vcodec_index, acodec_index, fps);
     th_video_capture->start();
     err = th_video_capture->get_err();
     if(err)

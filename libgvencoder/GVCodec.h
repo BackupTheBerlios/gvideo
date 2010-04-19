@@ -209,6 +209,9 @@ class GVCodec
     std::vector<GVCodec_vdata> vcodec_list;
     std::vector<GVCodec_adata> acodec_list;
     unsigned get_real_vcodec_index (unsigned codec_ind);
+    void close_codecs(); // calls both close_vcodec and close_acodec
+    void close_vcodec();
+    void close_acodec();
     bool open_vcodec(unsigned codec_ind, UINT8 *out_buff, 
                      unsigned buff_size, 
                      int width, 

@@ -41,6 +41,7 @@ START_GVIDEOGTK_NAMESPACE
 GtkWindow::GtkWindow(
         libgvideo::GVDevice* _dev, 
         libgvaudio::GVAudio* _audio,
+        libgvencoder::GVCodec*  _encoder /*=NULL*/,
         GVVideoThreads* _th_video /*= NULL*/,
         int _format /*= 0*/, 
         int _resolution /*= 0*/, 
@@ -48,6 +49,8 @@ GtkWindow::GtkWindow(
 {
     dev = _dev;
     audio = _audio;
+    /*get a new encoder instance*/
+    encoder= _encoder;
     th_video = _th_video;
     format = _format;
     resolution = _resolution;
@@ -210,9 +213,6 @@ GtkWindow::GtkWindow(
         sigc::mem_fun(*this, &GtkWindow::on_fps_combo_changed));
 
     //Encoder definitions
-    /*get a new encoder instance*/
-    libgvencoder::GVCodec*  encoder= new libgvencoder::GVCodec();
-    
     //Video Codec
     i++;
     vcodec_label= new Gtk::Label("Video Codec: ");
@@ -262,8 +262,6 @@ GtkWindow::GtkWindow(
     //Connect signal handler:
     acodec_combo->signal_changed().connect(
         sigc::mem_fun(*this, &GtkWindow::on_acodec_combo_changed));
-        
-    delete encoder;
     
     //Add the Notebook pages:
     gv_Notebook->append_page(*controlTable, *gv_ImageLabel);

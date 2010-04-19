@@ -266,7 +266,9 @@ int main (int argc, char *argv[])
     //get device
     libgvideo::GVDevice* dev = new libgvideo::GVDevice(options->opts->devicename, options->opts->verbose);
     libgvaudio::GVAudio* audio = new libgvaudio::GVAudio(verbose);
-
+    //get encoder
+    libgvencoder::GVCodec*  encoder = new libgvencoder::GVCodec();
+    
     int format_index = 0;
     int resolution_index = 0;
     int fps_index = 0;
@@ -304,12 +306,13 @@ int main (int argc, char *argv[])
         goto finish;
     }
     else
-        th_video = new gvideogtk::GVVideoThreads(dev);
+        th_video = new gvideogtk::GVVideoThreads(dev, encoder);
     
     //main window
     window = new gvideogtk::GtkWindow( 
         dev, 
         audio,
+        encoder,
         th_video,
         format_index, 
         resolution_index, 
@@ -323,6 +326,8 @@ int main (int argc, char *argv[])
     delete th_video;
 
   finish: 
+    if(verbose) cout << "deleting encoder\n";
+    delete encoder;
     if(verbose) cout << "deleting dev\n"; 
     delete dev;
     if(verbose) cout << "deleting options\n";

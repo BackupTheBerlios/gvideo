@@ -33,6 +33,7 @@
 #include "libgvthreads/GVThreads.h"
 #include "libgvideo/gvideo.h"
 #include "libgvaudio/GVAudio.h"
+#include "libgvencoder/GVCodec.h"
 
 START_GVIDEOGTK_NAMESPACE
 
@@ -41,6 +42,7 @@ class GVVideoCapture : public libgvthreads::GVThread
   protected:
     libgvideo::GVDevice* dev;
     libgvaudio::GVAudio* audio;
+    libgvencoder::GVCodec* encoder;
     libgvideo::GVBuffer* buf;
     libgvideo::VidBuff* capbuf;
 
@@ -64,6 +66,7 @@ class GVVideoCapture : public libgvthreads::GVThread
     GVVideoCapture(
         libgvideo::GVDevice* _dev,
         libgvaudio::GVAudio* _audio,
+        libgvencoder::GVCodec* _encoder,
         libgvideo::GVBuffer* _buf,
         int aindex,
         unsigned _vcodec_ind,
@@ -110,6 +113,7 @@ class GVVideoThreads
   protected:
     libgvideo::GVDevice* dev;
     libgvideo::GVBuffer* buf;
+    libgvencoder::GVCodec*  encoder;
     
     libgvideo::GVFps fps;
     
@@ -119,13 +123,19 @@ class GVVideoThreads
     bool capturing_video;
 
   public:
-    GVVideoThreads(libgvideo::GVDevice* _dev);
+    GVVideoThreads(
+        libgvideo::GVDevice* _dev,
+        libgvencoder::GVCodec* encoder);
     ~GVVideoThreads();
     
     int set_format(std::string fourcc, int width, int height);
     void set_fps(libgvideo::GVFps* _fps);
     void quit();
-    void start_video_capture(libgvaudio::GVAudio* _audio, int audio_device, unsigned vcodec_index, unsigned acodec_index);
+    void start_video_capture(
+        libgvaudio::GVAudio* _audio, 
+        int audio_device,
+        unsigned vcodec_index, 
+        unsigned acodec_index);
     void stop_video_capture();
     void cap_image(std::string _image_filename);
     bool is_capturing_video();

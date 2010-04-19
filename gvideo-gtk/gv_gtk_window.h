@@ -102,6 +102,7 @@ class GtkWindow : public Gtk::Window
     libgvideo::GVFps frate;
     int format, resolution, fps;
     libgvideo::GVDevice* dev;
+    libgvencoder::GVCodec* encoder;
     int audio_dev_index;
     unsigned vcodec_ind;
     unsigned acodec_ind;
@@ -112,6 +113,7 @@ class GtkWindow : public Gtk::Window
   
     GtkWindow( libgvideo::GVDevice* _dev, 
         libgvaudio::GVAudio* _audio,
+        libgvencoder::GVCodec*  _encoder = NULL,
         GVVideoThreads* _th_video = NULL,
         int _format = 0, 
         int _resolution = 0, 

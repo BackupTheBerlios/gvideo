@@ -215,6 +215,17 @@ GVCodec::GVCodec()
 
 GVCodec::~GVCodec()
 {
+    close_codecs();
+}
+
+void GVCodec::close_codecs()
+{
+    close_vcodec();
+    close_acodec();
+}
+
+void GVCodec::close_vcodec()
+{
     if(vcodec_context)
     {
         avcodec_flush_buffers(vcodec_context);
@@ -223,16 +234,13 @@ GVCodec::~GVCodec()
         //free codec context 
         free(vcodec_context);
     }
-    if(acodec_context)
-    {
-        avcodec_flush_buffers(acodec_context);
-        //close codec 
-        avcodec_close(acodec_context);
-        //free codec context 
-        free(acodec_context);
-    }
+    
     if(picture) free(picture);
+    picture = NULL;
     if(tmpbuf) delete[] tmpbuf;
+    tmpbuf = NULL;
+    
+    vcodec_context = NULL;
 }
 
 bool GVCodec::open_vcodec(unsigned codec_ind, 
@@ -453,6 +461,21 @@ int GVCodec::get_aac_samp_ind(int samprate)
         i=4; /*default 44100*/
     }
     return i;
+}
+
+
+void GVCodec::close_acodec()
+{
+    if(acodec_context)
+    {
+        avcodec_flush_buffers(acodec_context);
+        //close codec 
+        avcodec_close(acodec_context);
+        //free codec context 
+        free(acodec_context);
+    }
+    
+    acodec_context = NULL;
 }
 
 /* returns -1 on error or 
