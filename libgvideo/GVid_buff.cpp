@@ -391,7 +391,7 @@ int GVBuffer::consume_nextFrame(VidBuff *frame)
     if(!frame)
     {
         std::cerr << "libgvideo: no Video Buffer allocated (NULL)\n";
-        return -1;
+        return -2;
     }
     
     if(!(frame->raw_frame))
@@ -418,7 +418,7 @@ int GVBuffer::consume_nextFrame(VidBuff *frame)
     }
     
     pthread_mutex_unlock( &mutex );
-    std::cerr << "libgvideo: no frame available yet (produce a frame first)\n";
+    //std::cerr << "libgvideo: no frame available yet (produce a frame first)\n";
     return -1;
 }
 
