@@ -730,7 +730,7 @@ int GVDevice::set_control_val (int control_index, int val)
     c.value = val;
     ret = xioctl (VIDIOC_S_CTRL, &c);
     if (ret < 0) 
-        std::cerr << "VIDIOC_S_CTRL - Unable to get control:" << strerror(errno) << std::endl;
+        std::cerr << "VIDIOC_S_CTRL - Unable to set control:" << strerror(errno) << std::endl;
 
     return ret;
 }

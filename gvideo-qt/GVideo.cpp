@@ -25,12 +25,12 @@
 #                                                                               #
 ********************************************************************************/
 
-#include <gtkmm/main.h>
+#include <QApplication>
 #include <iostream>
 #include <string.h>
 #include "libgvideo/gvideo.h"
 #include "libgvaudio/GVAudio.h"
-#include "gv_gtk_window.h"
+#include "gv_qt_window.hpp"
 #include "gv_video_threads.h"
 
 using namespace std;
@@ -218,10 +218,11 @@ class GVOpt : public libgvideo::GVOptions
 
 int main (int argc, char *argv[])
 {
-    //init gtk
-    Gtk::Main kit(argc, argv);
-    gvideogtk::GVVideoThreads* th_video = NULL;
-    gvideogtk::GtkWindow* window = NULL;
+    //init qt
+    QApplication gvideoqt_app(argc, argv);
+
+    gvideoqt::GVVideoThreads* th_video = NULL;
+    gvideoqt::QtWindow* window = NULL;
     
     int i = 0;
     int j = 0;
@@ -302,6 +303,8 @@ int main (int argc, char *argv[])
         if(fps_index < 0) 
             fps_index = dev->listVidFormats[format_index].listVidCap[resolution_index].fps.size() - 1;
     }
+    
+    cout << "starting thread....";
 
     if(dev->set_format(fourcc, width, height) < 0)
     {
@@ -309,10 +312,11 @@ int main (int argc, char *argv[])
         goto finish;
     }
     else
-        th_video = new gvideogtk::GVVideoThreads(dev, encoder);
+        th_video = new gvideoqt::GVVideoThreads(dev, encoder);
     
+    cout << "OK\n";
     //main window
-    window = new gvideogtk::GtkWindow( 
+    window = new gvideoqt::QtWindow( 
         dev, 
         audio,
         encoder,
@@ -321,9 +325,15 @@ int main (int argc, char *argv[])
         resolution_index, 
         fps_index );
 
+    //set window as main widget
+    //gvideoqt_app.setMainWidget( &window );
+    //show main window
+    cout << "QT show window...";
+    window->show();
+    cout << "OK\n";
     //main loop
-    Gtk::Main::run(*window);   
-
+    gvideoqt_app.exec();
+   
     //remove window
     delete window;
     delete th_video;

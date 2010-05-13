@@ -7,6 +7,7 @@ SUBDIRS = $(GVIDEO_LIBRARY_NAME) \
           $(GVTHREADS_LIBRARY_NAME) \
           $(GVIDEO_CMD_NAME) \
           $(GVIDEO_GTK_NAME) \
+          $(GVIDEO_QT_NAME) \
           common \
           po \
           pixmaps
@@ -19,6 +20,7 @@ DIST_SUBDIRS = $(GVIDEO_LIBRARY_NAME) \
                $(GVTHREADS_LIBRARY_NAME) \
                $(GVIDEO_CMD_NAME) \
                $(GVIDEO_GTK_NAME) \
+               $(GVIDEO_QT_NAME) \
                common \
                po \
                pixmaps

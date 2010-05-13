@@ -65,6 +65,9 @@ typedef uint64_t   UINT64;
 #define START_GVIDEOGTK_NAMESPACE namespace gvideogtk {
 #define END_GVIDEOGTK_NAMESPACE };
 
+#define START_GVIDEOQT_NAMESPACE namespace gvideoqt {
+#define END_GVIDEOQT_NAMESPACE };
+
 //audio frame defs
 #define MPG_NUM_SAMP 1152  //number of samples in a audio buffer (MPEG frame) 
 #define DEF_AUD_FRAME_SIZE MPG_NUM_SAMP*4

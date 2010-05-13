@@ -177,6 +177,21 @@ GVIDEO_GTK_VERSION=$GVIDEO_GTK_MAJOR_VERSION.$GVIDEO_GTK_MINOR_VERSION.$GVIDEO_G
 AC_SUBST(GVIDEO_GTK_VERSION)
 
 dnl -----------------------------------------------
+dnl gvideo-qt ui
+dnl -----------------------------------------------
+
+GVIDEO_QT_NAME=gvideo-qt
+AC_SUBST(GVIDEO_QT_NAME)
+
+GVIDEO_QT_MAJOR_VERSION=0
+GVIDEO_QT_MINOR_VERSION=1
+GVIDEO_QT_MICRO_VERSION=0
+
+# app version
+GVIDEO_QT_VERSION=$GVIDEO_QT_MAJOR_VERSION.$GVIDEO_QT_MINOR_VERSION.$GVIDEO_QT_MICRO_VERSION
+AC_SUBST(GVIDEO_QT_VERSION)
+
+dnl -----------------------------------------------
 dnl Checks for programs.
 dnl -----------------------------------------------
 
@@ -351,6 +366,133 @@ if test $enable_gtk = yes; then
 fi
 
 dnl --------------------------------------------------------------------------
+dnl check for gvideo-qt dependencies
+dnl --------------------------------------------------------------------------
+AC_MSG_CHECKING(if you want to disable gvideo-qt support)
+AC_ARG_ENABLE(qt, AS_HELP_STRING([--disable-qt],
+        [disable qt support (default: enabled)]),
+    [enable_qt=no],
+    [enable_qt=yes])
+
+AC_MSG_RESULT($enable_qt)
+if test $enable_qt = yes; then
+    PKG_CHECK_MODULES(GVIDEOQT, [QtGui QtCore],,
+    [
+        AC_MSG_CHECKING(QT4 Path)
+        QTDIR=xxx
+        AC_ARG_WITH([qt-dir],
+             AC_HELP_STRING([--with-qt-dir=/path/to/Qt4],
+                            [to specify the path to the Qt4 directory.]),
+             [QTPATHS="$withval"],
+             [QTPATHS="/usr/share/qt4 /usr/local/Trolltech/Qt-4.1.0"])
+
+        for x in $QTPATHS; do
+            if test -d $x ; then
+                QTDIR="$x"
+            fi
+        done
+    
+        if test $QTDIR = xxx ; then
+            AC_MSG_ERROR(Could not locate QT 4 dir)
+        fi
+        AC_MSG_RESULT($QTDIR)
+
+        AC_MSG_CHECKING(QT4 Include Path)
+        QTINCDIR=xxx
+        AC_ARG_WITH([qt-include-dir],
+            AC_HELP_STRING([--with-qt-include-dir=/path/to/Qt4/headers],
+                            [to specify the path to the Qt4 include directory.]),
+            [QTINCPATHS="$withval"],
+            [QTINCPATHS="/usr/include/qt4 /usr/local/Trolltech/Qt-4.1.0/include"])
+
+        for x in $QTINCPATHS; do
+            if test -d $x ; then
+                QTINCDIR="$x"
+            fi
+        done
+    
+        if test $QTINCDIR = xxx ; then
+            AC_MSG_ERROR(Could not locate QT 4 include dir)
+        fi
+        AC_MSG_RESULT($QTINCDIR)
+    
+        AC_PATH_XTRA
+        
+        GVIDEOQT_LIBS="-Wl,-rpath,$QTDIR/lib -L$QTDIR/lib -lQtGui -lQtOpenGL -lQtCore $X_LIBS -lX11 -lXext -lXmu -lXt -lXi $X_EXTRA_LIBS -lGLU -lGL -lpthread"
+        GVIDEOQT_CFLAGS="-I$QTINCDIR -I$QTINCDIR/QtGui -I$QTINCDIR/QtCore -I$QTINCDIR/QtOpenGL $X_CFLAGS -DQT_OPENGL_LIB -DQT_GUI_LIB -DQT_CORE_LIB -DQT_SHARED"
+        QTBIN="$QTDIR/bin"
+    ]
+    );
+    AC_SUBST(GVIDEOQT_CFLAGS)
+    AC_SUBST(GVIDEOQT_LIBS)
+    
+    # Now we check whether we can actually build a Qt app.
+    cat > myqt.h << EOF
+#include <QObject>
+class Test : public QObject
+{
+Q_OBJECT
+public:
+  Test() {}
+  ~Test() {}
+public slots:
+  void receive() {}
+signals:
+  void send();
+};
+EOF
+
+    cat > myqt.cpp << EOF
+#include "myqt.h"
+#include <QApplication>
+int main( int argc, char **argv )
+{
+  QApplication app( argc, argv );
+  Test t;
+  QObject::connect( &t, SIGNAL(send()), &t, SLOT(receive()) );
+}
+EOF
+
+    AC_MSG_CHECKING(does moc work?)
+    bnv_try_1="moc myqt.h -o moc_myqt.cpp"
+    AC_TRY_EVAL(bnv_try_1)
+    if test x"$ac_status" != x0; then
+        AC_MSG_ERROR(moc doesn't work)
+    fi
+    AC_MSG_RESULT(yes)
+    AC_MSG_CHECKING(can I compile moc_myqt.cpp?)
+    bnv_try_2="$CXX -c $GVIDEOQT_CFLAGS -o moc_myqt.o moc_myqt.cpp"
+    AC_TRY_EVAL(bnv_try_2)
+    if test x"$ac_status" != x0; then
+        AC_MSG_ERROR(couldn't compile moc_myqt.cpp)
+    fi
+    AC_MSG_RESULT(yes)
+    AC_MSG_CHECKING(can I compile myqt.cpp?)
+    bnv_try_3="$CXX -c $GVIDEOQT_CFLAGS -o myqt.o myqt.cpp"
+    AC_TRY_EVAL(bnv_try_3)
+    if test x"$ac_status" != x0; then
+        AC_MSG_ERROR(couldn't compile myqt.cpp)
+    fi
+    AC_MSG_RESULT(yes)
+    AC_MSG_CHECKING(can I link against QT?)
+    nv_try_4="$CXX $GVIDEOQT_LIBS -o myqt myqt.o moc_myqt.o"
+    AC_TRY_EVAL(bnv_try_4)
+    if test x"$ac_status" != x0; then
+        AC_MSG_ERROR(couldn't link)
+    fi
+    AC_MSG_RESULT(yes)
+
+    AC_MSG_CHECKING(for mkoctfile)
+    AC_TRY_EVAL(mkoctfile)
+    if test x"$ac_status" != x0; then
+        AC_MSG_ERROR(mkoctfile is not in the path)
+    fi
+    AC_MSG_RESULT(yes)
+    rm -f moc_myqt.cpp myqt.h myqt.cpp myqt.o myqt moc_myqt.o
+
+fi
+
+dnl --------------------------------------------------------------------------
 dnl set/unset debian menu
 dnl --------------------------------------------------------------------------
 AC_MSG_CHECKING(if you want to enable debian menu)
@@ -398,6 +540,7 @@ AC_OUTPUT(Makefile \
           libgvthreads/Makefile \
           gvideo/Makefile \
           gvideo-gtk/Makefile \
+          gvideo-qt/Makefile \
           common/Makefile \
           pixmaps/Makefile \
           po/Makefile.in
