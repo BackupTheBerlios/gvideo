@@ -141,6 +141,7 @@ QtWindow::QtWindow(
     {
         QLabel  *control_label= new QLabel(QString(dev->listControls[i].name.c_str()));
         controlTable->addWidget(control_label, i, 0);
+        int val = 0;
         
         switch(dev->listControls[i].type)
         {
@@ -151,7 +152,11 @@ QtWindow::QtWindow(
                     {
                         control_widget->addItem(QString(dev->listControls[i].entries[j].c_str()));
                     }
-                    control_widget->setCurrentIndex(dev->listControls[i].default_val);
+                    if(dev->get_control_val (i, &val) != 0)
+                        control_widget->setCurrentIndex(dev->listControls[i].default_val);
+                    else
+                        control_widget->setCurrentIndex(val);
+                    
                     controlTable->addWidget(control_widget, i, 1);
                     //Connect signal handler:
                     
@@ -169,7 +174,11 @@ QtWindow::QtWindow(
             case V4L2_CTRL_TYPE_BOOLEAN:
                 {
                     GVCheckBox *control_widget = new GVCheckBox(i);
-                    control_widget->setChecked((dev->listControls[i].default_val > 0));
+                    if(dev->get_control_val (i, &val) != 0)
+                        control_widget->setChecked((dev->listControls[i].default_val > 0));
+                    else
+                        control_widget->setChecked(val > 0);
+
                     controlTable->addWidget(control_widget, i, 1);
                     //Connect signal handler:
                     if(ChecksignalMapper == NULL) ChecksignalMapper = new QSignalMapper(this);
@@ -188,7 +197,10 @@ QtWindow::QtWindow(
                     control_widget->setMinimum(dev->listControls[i].min);
                     control_widget->setMaximum(dev->listControls[i].max);
                     control_widget->setPageStep(dev->listControls[i].step);
-                    control_widget->setValue(dev->listControls[i].default_val);
+                    if(dev->get_control_val (i, &val) != 0)
+                        control_widget->setValue(dev->listControls[i].default_val);
+                    else
+                        control_widget->setValue(val);
                     
                     controlTable->addWidget(control_widget, i, 1);
                     //Connect signal handler:

@@ -67,7 +67,7 @@ GtkWindow::GtkWindow(
     gv_Button_Quit= new Gtk::Button("Quit");
     set_title("GVideo - GTK GUI");
     set_border_width(10);
-    set_default_size(640, 480);
+    set_default_size(320, 480);
 
     gv_VBox = new Gtk::VBox();
     gv_Notebook = new Gtk::Notebook();
@@ -108,7 +108,9 @@ GtkWindow::GtkWindow(
     for(i=0; i < dev->listControls.size(); i++)
     {
         Gtk::Label  *control_label= new Gtk::Label(dev->listControls[i].name);
-        controlTable->attach(*control_label, 0, 1, i, i+1, Gtk::EXPAND | Gtk::FILL, Gtk::SHRINK);
+        control_label->set_alignment(Gtk::ALIGN_LEFT, Gtk::ALIGN_CENTER);
+        controlTable->attach(*control_label, 0, 1, i, i+1, Gtk::SHRINK | Gtk::FILL, Gtk::SHRINK);
+        int val = 0;
         
         switch(dev->listControls[i].type)
         {
@@ -119,7 +121,10 @@ GtkWindow::GtkWindow(
                     {
                         control_widget->append_text(dev->listControls[i].entries[j]);
                     }
-                    control_widget->set_active(dev->listControls[i].default_val);
+                    if(dev->get_control_val (i, &val) != 0)
+                        control_widget->set_active(dev->listControls[i].default_val);
+                    else
+                        control_widget->set_active(val);
                     controlTable->attach(*control_widget, 1, 2, i, i+1, Gtk::EXPAND | Gtk::FILL, Gtk::SHRINK);
                     //Connect signal handler:
                     control_widget->signal_changed().connect(sigc::bind<Gtk::ComboBoxText*, int>(
@@ -131,7 +136,10 @@ GtkWindow::GtkWindow(
             case V4L2_CTRL_TYPE_BOOLEAN:
                 {
                     Gtk::CheckButton *control_widget = new Gtk::CheckButton();
-                    control_widget->set_active(dev->listControls[i].default_val);
+                    if(dev->get_control_val (i, &val) != 0)
+                        control_widget->set_active(dev->listControls[i].default_val > 0);
+                    else
+                        control_widget->set_active(val > 0);
                     controlTable->attach(*control_widget, 1, 2, i, i+1, Gtk::EXPAND | Gtk::FILL, Gtk::SHRINK);
                     //Connect signal handler:
                     control_widget->signal_clicked().connect(sigc::bind<Gtk::CheckButton*, int>(
@@ -146,7 +154,10 @@ GtkWindow::GtkWindow(
                         dev->listControls[i].min, 
                         dev->listControls[i].max, 
                         dev->listControls[i].step );
-                    control_widget->set_value(dev->listControls[i].default_val);
+                    if(dev->get_control_val (i, &val) != 0)
+                        control_widget->set_value(dev->listControls[i].default_val);
+                    else
+                        control_widget->set_value(val);
                     controlTable->attach(*control_widget, 1, 2, i, i+1, Gtk::EXPAND | Gtk::FILL, Gtk::SHRINK);
                     //Connect signal handler:
                     control_widget->signal_value_changed().connect(sigc::bind<Gtk::HScale*, int>(
@@ -161,7 +172,8 @@ GtkWindow::GtkWindow(
     //stream format
     i=0;
     video_format_label= new Gtk::Label("Stream Format: ");
-    videoTable->attach(*video_format_label, 0, 1, i, i+1);
+    video_format_label->set_alignment(Gtk::ALIGN_LEFT, Gtk::ALIGN_CENTER);
+    videoTable->attach(*video_format_label, 0, 1, i, i+1, Gtk::SHRINK | Gtk::FILL, Gtk::SHRINK);
     video_format_combo = new Gtk::ComboBoxText();
     j = 0;
     for (j=0; j< dev->listVidFormats.size(); j++)
@@ -176,7 +188,8 @@ GtkWindow::GtkWindow(
     //resolution
     i++;
     resolution_label= new Gtk::Label("Resolution: ");
-    videoTable->attach(*resolution_label, 0, 1, i, i+1);
+    resolution_label->set_alignment(Gtk::ALIGN_LEFT, Gtk::ALIGN_CENTER);
+    videoTable->attach(*resolution_label, 0, 1, i, i+1, Gtk::SHRINK | Gtk::FILL, Gtk::SHRINK);
     resolution_combo = new Gtk::ComboBoxText();
     j = 0;
     for (j=0; j<dev->listVidFormats[format].listVidCap.size(); j++)
@@ -195,7 +208,8 @@ GtkWindow::GtkWindow(
     //fps
     i++;
     fps_label= new Gtk::Label("Frame Rate: ");
-    videoTable->attach(*fps_label, 0, 1, i, i+1);
+    fps_label->set_alignment(Gtk::ALIGN_LEFT, Gtk::ALIGN_CENTER);
+    videoTable->attach(*fps_label, 0, 1, i, i+1, Gtk::SHRINK | Gtk::FILL, Gtk::SHRINK);
     fps_combo = new Gtk::ComboBoxText();
     
     j = 0;
@@ -216,7 +230,8 @@ GtkWindow::GtkWindow(
     //Video Codec
     i++;
     vcodec_label= new Gtk::Label("Video Codec: ");
-    videoTable->attach(*vcodec_label, 0, 1, i, i+1);
+    vcodec_label->set_alignment(Gtk::ALIGN_LEFT, Gtk::ALIGN_CENTER);
+    videoTable->attach(*vcodec_label, 0, 1, i, i+1, Gtk::SHRINK | Gtk::FILL, Gtk::SHRINK);
     vcodec_combo = new Gtk::ComboBoxText();
     
     j = 0;
@@ -233,7 +248,8 @@ GtkWindow::GtkWindow(
     //audio devices
     i = 0;
     audio_dev_label = new Gtk::Label("Devices: ");
-    audioTable->attach(*audio_dev_label, 0, 1, i, i+1);
+    audio_dev_label->set_alignment(Gtk::ALIGN_LEFT, Gtk::ALIGN_CENTER);
+    audioTable->attach(*audio_dev_label, 0, 1, i, i+1, Gtk::SHRINK | Gtk::FILL, Gtk::SHRINK);
     audio_dev_combo = new Gtk::ComboBoxText();
     j = 0;
     for (j=0; j<audio->listAudioDev.size(); j++)
@@ -249,7 +265,8 @@ GtkWindow::GtkWindow(
     //Audio definitions
     i++;
     acodec_label= new Gtk::Label("Audio Codec: ");
-    audioTable->attach(*acodec_label, 0, 1, i, i+1);
+    acodec_label->set_alignment(Gtk::ALIGN_LEFT, Gtk::ALIGN_CENTER);
+    audioTable->attach(*acodec_label, 0, 1, i, i+1, Gtk::SHRINK | Gtk::FILL, Gtk::SHRINK);
     acodec_combo = new Gtk::ComboBoxText();
     
     j = 0;
