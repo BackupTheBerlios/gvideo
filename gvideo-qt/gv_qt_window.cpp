@@ -102,10 +102,17 @@ QtWindow::QtWindow(
     gv_ButtonBox->setSpacing( 6 );
     gv_ButtonBox->setMargin( 0 );
 
-    
     gv_Button_pic= new QPushButton("cap picture");
+    gv_Button_pic->setIcon(QIcon(QString(PACKAGE_DATA_DIR) + QString("/pixmaps/gvideo/camera.png")));
+    gv_Button_pic->setIconSize(QSize(64,64));
+    
     gv_Button_vid= new QPushButton("cap video");
+    gv_Button_vid->setIcon(QIcon(QString(PACKAGE_DATA_DIR) + QString("/pixmaps/gvideo/movie.png")));
+    gv_Button_vid->setIconSize(QSize(64,64));
+    
     gv_Button_Quit= new QPushButton("Quit");
+    gv_Button_Quit->setIcon(QIcon(QString(PACKAGE_DATA_DIR) + QString("/pixmaps/gvideo/close.png")));
+    gv_Button_Quit->setIconSize(QSize(64,64));
     
     gv_ButtonBox->addWidget(gv_Button_pic);
     gv_ButtonBox->addWidget(gv_Button_vid);
@@ -119,6 +126,7 @@ QtWindow::QtWindow(
     //Add the Notebook, with the button box underneath:
     gv_VBox->addWidget(gv_Notebook);
     QWidget* buttonBox = new QWidget();
+    buttonBox->setStyleSheet("QPushButton{background-position: top}");
     buttonBox->setLayout(gv_ButtonBox);
     gv_VBox->addWidget(buttonBox);
 
@@ -341,6 +349,8 @@ QtWindow::QtWindow(
     
     setLayout(gv_VBox);
     setWindowTitle("GVideo - QT GUI");
+    setWindowIcon(QIcon(QString(PACKAGE_DATA_DIR) + QString("/pixmaps/gvideo/gvideo.png")));
+
 
 }
 
