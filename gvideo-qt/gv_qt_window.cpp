@@ -224,7 +224,8 @@ QtWindow::QtWindow(
         }
     }
     controlPage->setLayout(controlTable);
-    gv_Notebook->addTab(controlPage,"Image Controls");
+    gv_Notebook->addTab(controlPage,QIcon(QString(PACKAGE_DATA_DIR) + QString("/pixmaps/gvideo/image_controls.png")),"Image Controls");
+    gv_Notebook->setIconSize(QSize(32,32));
     //video stream definitions
     
     //stream format
@@ -301,7 +302,7 @@ QtWindow::QtWindow(
         this, SLOT(on_vcodec_combo_changed(int)));
     
     videoPage->setLayout(videoTable);
-    gv_Notebook->addTab(videoPage,"Video Controls");
+    gv_Notebook->addTab(videoPage,QIcon(QString(PACKAGE_DATA_DIR) + QString("/pixmaps/gvideo/video_controls.png")),"Video Controls");
     
     //audio devices
     i = 0;
@@ -338,7 +339,7 @@ QtWindow::QtWindow(
         this, SLOT(on_acodec_combo_changed(int)));
     
     audioPage->setLayout(audioTable);
-    gv_Notebook->addTab(audioPage,"Audio Controls");
+    gv_Notebook->addTab(audioPage,QIcon(QString(PACKAGE_DATA_DIR) + QString("/pixmaps/gvideo/audio_controls.png")),"Audio Controls");
     
     //save current resolution
     width = dev->listVidFormats[format].listVidCap[resolution].width;
