@@ -376,7 +376,7 @@ AC_ARG_ENABLE(qt, AS_HELP_STRING([--disable-qt],
 
 AC_MSG_RESULT($enable_qt)
 if test $enable_qt = yes; then
-    PKG_CHECK_MODULES(GVIDEOQT, [QtGui QtCore]);
+    PKG_CHECK_MODULES(GVIDEOQT, [QtGui QtCore] );
     AC_SUBST(GVIDEOQT_CFLAGS)
     AC_SUBST(GVIDEOQT_LIBS)
     

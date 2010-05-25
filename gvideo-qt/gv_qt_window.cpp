@@ -31,6 +31,7 @@
 #include <sstream>
 
 #include "gv_qt_window.hpp"
+#include "gv_qt_pan-tilt_widget.hpp"
 #include "gvcommon.h"
 #include "libgvideo/GVid_v4l2.h"
 #include "libgvencoder/GVCodec.h"
@@ -201,24 +202,37 @@ QtWindow::QtWindow(
                 
             case V4L2_CTRL_TYPE_INTEGER:
                 {
-                    GVSlider *control_widget = new GVSlider( i );
-                    control_widget->setMinimum(dev->listControls[i].min);
-                    control_widget->setMaximum(dev->listControls[i].max);
-                    control_widget->setPageStep(dev->listControls[i].step);
-                    if(dev->get_control_val (i, &val) != 0)
-                        control_widget->setValue(dev->listControls[i].default_val);
+                    if(dev->listControls[i].id == V4L2_CID_PAN_RELATIVE)
+                    {
+                        GVPanTiltWidget *control_widget = new GVPanTiltWidget( dev, i, true);
+                        controlTable->addWidget(control_widget, i, 1);
+                    }
+                    else if (dev->listControls[i].id == V4L2_CID_TILT_RELATIVE)
+                    {
+                        GVPanTiltWidget *control_widget = new GVPanTiltWidget( dev, i, false);
+                        controlTable->addWidget(control_widget, i, 1);
+                    }
                     else
-                        control_widget->setValue(val);
-                    
-                    controlTable->addWidget(control_widget, i, 1);
-                    //Connect signal handler:
-                    if(SlidersignalMapper == NULL) SlidersignalMapper = new QSignalMapper(this);
-                    SlidersignalMapper->setMapping(control_widget, control_widget);
+                    {
+                        GVSlider *control_widget = new GVSlider( i );
+                        control_widget->setMinimum(dev->listControls[i].min);
+                        control_widget->setMaximum(dev->listControls[i].max);
+                        control_widget->setPageStep(dev->listControls[i].step);
+                        if(dev->get_control_val (i, &val) != 0)
+                            control_widget->setValue(dev->listControls[i].default_val);
+                        else
+                            control_widget->setValue(val);
+                        
+                        controlTable->addWidget(control_widget, i, 1);
+                        //Connect signal handler:
+                        if(SlidersignalMapper == NULL) SlidersignalMapper = new QSignalMapper(this);
+                        SlidersignalMapper->setMapping(control_widget, control_widget);
 
-                    QObject::connect(control_widget, SIGNAL(valueChanged (int) ), 
-                        SlidersignalMapper, SLOT(map()));
-                    QObject::connect(SlidersignalMapper, SIGNAL(mapped(QWidget*)),
-                        this, SLOT(on_slider_changed(QWidget*)));
+                        QObject::connect(control_widget, SIGNAL(valueChanged (int) ), 
+                            SlidersignalMapper, SLOT(map()));
+                        QObject::connect(SlidersignalMapper, SIGNAL(mapped(QWidget*)),
+                            this, SLOT(on_slider_changed(QWidget*)));
+                    }
                 }
                 break;
         }

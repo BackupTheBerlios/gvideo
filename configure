@@ -16313,12 +16313,12 @@ if test -n "$PKG_CONFIG"; then
         pkg_cv_GVIDEOQT_CFLAGS="$GVIDEOQT_CFLAGS"
     else
         if test -n "$PKG_CONFIG" && \
-    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"QtGui QtCore\""; } >&5
-  ($PKG_CONFIG --exists --print-errors "QtGui QtCore") 2>&5
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"QtGui QtCore \""; } >&5
+  ($PKG_CONFIG --exists --print-errors "QtGui QtCore ") 2>&5
   ac_status=$?
   $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
   test $ac_status = 0; }; then
-  pkg_cv_GVIDEOQT_CFLAGS=`$PKG_CONFIG --cflags "QtGui QtCore" 2>/dev/null`
+  pkg_cv_GVIDEOQT_CFLAGS=`$PKG_CONFIG --cflags "QtGui QtCore " 2>/dev/null`
 else
   pkg_failed=yes
 fi
@@ -16331,12 +16331,12 @@ if test -n "$PKG_CONFIG"; then
         pkg_cv_GVIDEOQT_LIBS="$GVIDEOQT_LIBS"
     else
         if test -n "$PKG_CONFIG" && \
-    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"QtGui QtCore\""; } >&5
-  ($PKG_CONFIG --exists --print-errors "QtGui QtCore") 2>&5
+    { { $as_echo "$as_me:${as_lineno-$LINENO}: \$PKG_CONFIG --exists --print-errors \"QtGui QtCore \""; } >&5
+  ($PKG_CONFIG --exists --print-errors "QtGui QtCore ") 2>&5
   ac_status=$?
   $as_echo "$as_me:${as_lineno-$LINENO}: \$? = $ac_status" >&5
   test $ac_status = 0; }; then
-  pkg_cv_GVIDEOQT_LIBS=`$PKG_CONFIG --libs "QtGui QtCore" 2>/dev/null`
+  pkg_cv_GVIDEOQT_LIBS=`$PKG_CONFIG --libs "QtGui QtCore " 2>/dev/null`
 else
   pkg_failed=yes
 fi
@@ -16355,14 +16355,14 @@ else
         _pkg_short_errors_supported=no
 fi
         if test $_pkg_short_errors_supported = yes; then
-	        GVIDEOQT_PKG_ERRORS=`$PKG_CONFIG --short-errors --errors-to-stdout --print-errors "QtGui QtCore"`
+	        GVIDEOQT_PKG_ERRORS=`$PKG_CONFIG --short-errors --errors-to-stdout --print-errors "QtGui QtCore "`
         else
-	        GVIDEOQT_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "QtGui QtCore"`
+	        GVIDEOQT_PKG_ERRORS=`$PKG_CONFIG --errors-to-stdout --print-errors "QtGui QtCore "`
         fi
 	# Put the nasty error message in config.log where it belongs
 	echo "$GVIDEOQT_PKG_ERRORS" >&5
 
-	as_fn_error "Package requirements (QtGui QtCore) were not met:
+	as_fn_error "Package requirements (QtGui QtCore ) were not met:
 
 $GVIDEOQT_PKG_ERRORS
 
