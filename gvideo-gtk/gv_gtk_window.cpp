@@ -33,6 +33,7 @@
 #include <sstream>
 
 #include "gv_gtk_window.h"
+#include "gv_gtk_pan-tilt_widget.h"
 #include "gvcommon.h"
 #include "libgvideo/GVid_v4l2.h"
 #include "libgvencoder/GVCodec.h"
@@ -106,29 +107,33 @@ GtkWindow::GtkWindow(
     
     set_title("GVideo - GTK GUI");
     set_border_width(10);
-    set_default_size(320, 480);
+    set_default_size(480, 640);
 
-    gv_VBox = new Gtk::VBox();
+    gv_VPaned = new Gtk::VPaned();
     gv_Notebook = Gtk::manage(new Gtk::Notebook());
     gv_ButtonBox = Gtk::manage(new Gtk::HButtonBox());
+    gv_ButtonBox->set_layout(Gtk::BUTTONBOX_SPREAD);
+    gv_ButtonBox->set_homogeneous(true);
     
-    add(*gv_VBox);
+    add(*gv_VPaned);
 
     
     //Add the Notebook, with the button box underneath:
     gv_Notebook->set_border_width(10);
-    gv_VBox->pack_start(*gv_Notebook);
-    gv_VBox->pack_start(*gv_ButtonBox, Gtk::PACK_SHRINK );
+    gv_VPaned->add1(*gv_Notebook);
+    gv_VPaned->add2(*gv_ButtonBox);
+    
+    gv_VPaned->set_position(640-100);
 
-    gv_ButtonBox->pack_start(*gv_Button_pic, Gtk::PACK_EXPAND_WIDGET );
+    gv_ButtonBox->pack_start(*gv_Button_pic, true, true, 2 );
     gv_Button_pic->signal_clicked().connect(sigc::mem_fun(*this,
               &GtkWindow::on_button_pic) );
     
-    gv_ButtonBox->pack_start(*gv_Button_vid, Gtk::PACK_EXPAND_WIDGET );
+    gv_ButtonBox->pack_start(*gv_Button_vid, true, true, 2 );
     gv_Button_vid->signal_clicked().connect(sigc::mem_fun(*this,
               &GtkWindow::on_button_vid) );
     
-    gv_ButtonBox->pack_start(*gv_Button_Quit, Gtk::PACK_EXPAND_WIDGET );
+    gv_ButtonBox->pack_start(*gv_Button_Quit, true, true, 2 );
     gv_Button_Quit->signal_clicked().connect(sigc::mem_fun(*this,
               &GtkWindow::on_button_quit) );
               
@@ -186,20 +191,47 @@ GtkWindow::GtkWindow(
                 
             case V4L2_CTRL_TYPE_INTEGER:
                 {
-                    Gtk::HScale *control_widget = Gtk::manage(new Gtk::HScale(
-                        dev->listControls[i].min, 
-                        dev->listControls[i].max, 
-                        dev->listControls[i].step ));
-                    if(dev->get_control_val (i, &val) != 0)
-                        control_widget->set_value(dev->listControls[i].default_val);
+                    if(dev->listControls[i].id == V4L2_CID_PAN_RELATIVE)
+                    {
+                        GtkPanTilt *control_widget = new GtkPanTilt(dev, i, true);
+                        controlTable->attach(*control_widget, 1, 2, i, i+1, Gtk::EXPAND | Gtk::FILL, Gtk::SHRINK);
+                    }
+                    else if (dev->listControls[i].id == V4L2_CID_TILT_RELATIVE)
+                    {
+                        GtkPanTilt *control_widget = new GtkPanTilt(dev, i, false);
+                        controlTable->attach(*control_widget, 1, 2, i, i+1, Gtk::EXPAND | Gtk::FILL, Gtk::SHRINK);
+                    }
                     else
-                        control_widget->set_value(val);
-                    controlTable->attach(*control_widget, 1, 2, i, i+1, Gtk::EXPAND | Gtk::FILL, Gtk::SHRINK);
-                    //Connect signal handler:
-                    control_widget->signal_value_changed().connect(sigc::bind<Gtk::HScale*, int>(
-                        sigc::mem_fun(*this, &GtkWindow::on_hscale_value_changed), control_widget, i ));
+                    {
+                        Gtk::HScale *control_widget = Gtk::manage(new Gtk::HScale(
+                            dev->listControls[i].min, 
+                            dev->listControls[i].max, 
+                            dev->listControls[i].step ));
+                        if(dev->get_control_val (i, &val) != 0)
+                            control_widget->set_value(dev->listControls[i].default_val);
+                        else
+                            control_widget->set_value(val);
+                        controlTable->attach(*control_widget, 1, 2, i, i+1, Gtk::EXPAND | Gtk::FILL, Gtk::SHRINK);
+                        //Connect signal handler:
+                        control_widget->signal_value_changed().connect(sigc::bind<Gtk::HScale*, int>(
+                            sigc::mem_fun(*this, &GtkWindow::on_hscale_value_changed), control_widget, i ));
+                    }
                 }
                 break;
+                
+            case V4L2_CTRL_TYPE_BUTTON:
+                {
+                    Gtk::Button *control_widget = Gtk::manage(new Gtk::Button());
+                    controlTable->attach(*control_widget, 1, 2, i, i+1, Gtk::EXPAND | Gtk::FILL, Gtk::SHRINK);
+                    //Connect signal handler:
+                    control_widget->signal_clicked().connect(sigc::bind<Gtk::Button*, int>(
+                        sigc::mem_fun(*this, &GtkWindow::on_button_clicked), control_widget,i ));
+                }
+                break;
+            
+            default:
+                std::cerr << "Control tpye: " << std::hex << std::showbase 
+                    << dev->listControls[i].type << " not supported\n";
         }
     }
     
@@ -316,10 +348,17 @@ GtkWindow::GtkWindow(
     acodec_combo->signal_changed().connect(
         sigc::mem_fun(*this, &GtkWindow::on_acodec_combo_changed));
     
+    Gtk::ScrolledWindow *scrolled1 = new Gtk::ScrolledWindow();
+    Gtk::ScrolledWindow *scrolled2 = new Gtk::ScrolledWindow();
+    Gtk::ScrolledWindow *scrolled3 = new Gtk::ScrolledWindow();
+    
+    scrolled1->add(*controlTable);
+    scrolled2->add(*videoTable);
+    scrolled3->add(*audioTable);
     //Add the Notebook pages:
-    gv_Notebook->append_page(*controlTable, *tab1);
-    gv_Notebook->append_page(*videoTable, *tab2);
-    gv_Notebook->append_page(*audioTable, *tab3);
+    gv_Notebook->append_page(*scrolled1, *tab1);
+    gv_Notebook->append_page(*scrolled2, *tab2);
+    gv_Notebook->append_page(*scrolled3, *tab3);
     
     //save current resolution
     width = dev->listVidFormats[format].listVidCap[resolution].width;
@@ -379,6 +418,17 @@ void GtkWindow::on_hscale_value_changed(Gtk::HScale* hScale, int cindex)
     }
 }
 
+void GtkWindow::on_button_clicked(Gtk::Button* Button, int cindex)
+{
+    if(!(dev->set_control_val (cindex, 1)))
+    {
+        //std::cout << dev->listControls[cindex].name << " = " << val << std::endl;
+    }
+    else
+    {
+        std::cerr << "ERROR:couldn't set " << dev->listControls[cindex].name << std::endl;
+    }
+}
 void GtkWindow::on_video_format_combo_changed()
 {
     //get new format

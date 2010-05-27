@@ -52,7 +52,7 @@ am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
 am__objects_1 =
 am__objects_2 = GVideo.$(OBJEXT) gv_gtk_window.$(OBJEXT) \
-	gv_video_threads.$(OBJEXT)
+	gv_video_threads.$(OBJEXT) gv_gtk_pan-tilt_widget.$(OBJEXT)
 am_gvideo_gtk_OBJECTS = $(am__objects_1) $(am__objects_2)
 gvideo_gtk_OBJECTS = $(am_gvideo_gtk_OBJECTS)
 am__DEPENDENCIES_1 =
@@ -142,6 +142,8 @@ GVIDEOGTK_CFLAGS = @GVIDEOGTK_CFLAGS@
 GVIDEOGTK_LIBS = @GVIDEOGTK_LIBS@
 GVIDEOLIB_CFLAGS = @GVIDEOLIB_CFLAGS@
 GVIDEOLIB_LIBS = @GVIDEOLIB_LIBS@
+GVIDEOQT_CFLAGS = @GVIDEOQT_CFLAGS@
+GVIDEOQT_LIBS = @GVIDEOQT_LIBS@
 GVIDEO_API_VERSION = @GVIDEO_API_VERSION@
 GVIDEO_CMD_NAME = @GVIDEO_CMD_NAME@
 GVIDEO_CMD_VERSION = @GVIDEO_CMD_VERSION@
@@ -150,6 +152,8 @@ GVIDEO_GTK_VERSION = @GVIDEO_GTK_VERSION@
 GVIDEO_LD_NAME = @GVIDEO_LD_NAME@
 GVIDEO_LIBRARY_NAME = @GVIDEO_LIBRARY_NAME@
 GVIDEO_LIBRARY_VERSION = @GVIDEO_LIBRARY_VERSION@
+GVIDEO_QT_NAME = @GVIDEO_QT_NAME@
+GVIDEO_QT_VERSION = @GVIDEO_QT_VERSION@
 GVRENDERLIB_CFLAGS = @GVRENDERLIB_CFLAGS@
 GVRENDERLIB_LIBS = @GVRENDERLIB_LIBS@
 GVRENDER_API_VERSION = @GVRENDER_API_VERSION@
@@ -275,8 +279,8 @@ AM_CFLAGS = \
             -D_REENTRANT\
             -Wall
 
-h_sources = gv_gtk_window.h gv_video_threads.h
-cpp_sources = GVideo.cpp gv_gtk_window.cpp gv_video_threads.cpp
+h_sources = gv_gtk_window.h gv_video_threads.h gv_gtk_pan-tilt_widget.h
+cpp_sources = GVideo.cpp gv_gtk_window.cpp gv_video_threads.cpp gv_gtk_pan-tilt_widget.cpp
 gvideo_gtk_SOURCES = $(h_sources) $(cpp_sources)
 gvideo_gtk_CFLAGS = $(GVIDEOGTK_CFLAGS)
 gvideo_gtk_LDFLAGS = $(LIBINTL)
@@ -375,6 +379,7 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/GVideo.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gv_gtk_pan-tilt_widget.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gv_gtk_window.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gv_video_threads.Po@am__quote@
 

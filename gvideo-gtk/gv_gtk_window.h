@@ -29,10 +29,12 @@
 #define GVGTKWINDOW_H
 
 #include <gtkmm/window.h>
+#include <gtkmm/scrolledwindow.h>
 #include <gtkmm/label.h>
 #include <gtkmm/button.h>
 #include <gtkmm/table.h>
 #include <gtkmm/box.h>
+#include <gtkmm/paned.h>
 #include <gtkmm/buttonbox.h>
 #include <gtkmm/scale.h>
 #include <gtkmm/notebook.h>
@@ -53,15 +55,20 @@ class GtkWindow : public Gtk::Window
     void on_button_quit();
     void on_button_pic();
     void on_button_vid();
+    // generic controls
     void on_check_button_clicked(Gtk::CheckButton* checkButton, int cindex);
     void on_combo_changed(Gtk::ComboBoxText* comboBox, int cindex);
     void on_hscale_value_changed(Gtk::HScale* hScale, int cindex);
+    void on_button_clicked(Gtk::Button* Button, int cindex);
+    // video format controls
     void on_video_format_combo_changed();
     void on_resolution_combo_changed();
     sigc::connection signalResolutionCombo;
     void on_fps_combo_changed();
     sigc::connection signalFpsCombo;
+    // audio controls
     void on_audio_dev_combo_changed();
+    // codec controls
     void on_vcodec_combo_changed();
     void on_acodec_combo_changed();
     //void on_notebook_switch_page(GtkNotebookPage* page, guint page_num);
@@ -90,7 +97,7 @@ class GtkWindow : public Gtk::Window
     Gtk::ComboBoxText* acodec_combo;
 
     
-    Gtk::VBox* gv_VBox;
+    Gtk::VPaned* gv_VPaned;
     Gtk::HButtonBox* gv_ButtonBox;
     Gtk::Button* gv_Button_pic;
     Gtk::Button* gv_Button_vid;

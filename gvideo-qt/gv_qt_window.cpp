@@ -71,6 +71,17 @@ int GVSlider::get_index()
     return index;
 }
 
+GVButton::GVButton( int i, const QString name, QWidget * parent )
+    : QPushButton  (name, parent)
+{
+    index = i;
+}
+
+int GVButton::get_index()
+{
+    return index;
+}
+
 QtWindow::QtWindow(
         libgvideo::GVDevice* _dev, 
         libgvaudio::GVAudio* _audio,
@@ -235,6 +246,26 @@ QtWindow::QtWindow(
                     }
                 }
                 break;
+                
+            case V4L2_CTRL_TYPE_BUTTON:
+                {
+                    GVButton *control_widget = new GVButton( i );
+                    
+                    controlTable->addWidget(control_widget, i, 1);
+                    //Connect signal handler:
+                    if(ButtonsignalMapper == NULL) ButtonsignalMapper = new QSignalMapper(this);
+                        ButtonsignalMapper->setMapping(control_widget, control_widget);
+
+                    QObject::connect(control_widget, SIGNAL(clicked () ), 
+                        ButtonsignalMapper, SLOT(map()));
+                    QObject::connect(ButtonsignalMapper, SIGNAL(mapped(QWidget*)),
+                        this, SLOT(on_button_clicked(QWidget*)));
+                }
+                break;
+            
+            default:
+                std::cerr << "Control tpye: " << std::hex << std::showbase 
+                    << dev->listControls[i].type << " not supported\n";
         }
     }
     controlPage->setLayout(controlTable);
@@ -431,6 +462,22 @@ void QtWindow::on_slider_changed(QWidget* control)
         slider->blockSignals(true);
         slider->setValue(val);
         slider->blockSignals(false);
+    }
+}
+
+void QtWindow::on_button_clicked(QWidget* control)
+{
+    GVButton* button = (GVButton*) control;
+    
+    int index = button->get_index();
+    
+    if(!(dev->set_control_val (index, 1)))
+    {
+        //std::cout << dev->listControls[index].name << " = " << val << std::endl;
+    }
+    else
+    {
+        std::cerr << "ERROR:couldn't set " << dev->listControls[index].name << std::endl;
     }
 }
 

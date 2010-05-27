@@ -74,6 +74,15 @@ class GVSlider: public QSlider
     int get_index();
 };
 
+class GVButton: public QPushButton
+{
+  protected:
+    int index;
+  public:
+    GVButton(int i, const QString name = 0, QWidget * parent = 0);
+    int get_index();
+};
+
 class QtWindow : public QWidget
 {
     Q_OBJECT
@@ -86,6 +95,7 @@ class QtWindow : public QWidget
     void on_check_button_clicked(QWidget* control);
     void on_combo_changed(QWidget* control);
     void on_slider_changed(QWidget* control);
+    void on_button_clicked(QWidget* control);
     void on_video_format_combo_changed(int index);
     void on_resolution_combo_changed(int index);
     void on_fps_combo_changed(int index);
@@ -98,6 +108,7 @@ class QtWindow : public QWidget
     QSignalMapper *CombosignalMapper;
     QSignalMapper *ChecksignalMapper;
     QSignalMapper *SlidersignalMapper;
+    QSignalMapper *ButtonsignalMapper;
     //Child widgets:
     QTabWidget* gv_Notebook;
 
