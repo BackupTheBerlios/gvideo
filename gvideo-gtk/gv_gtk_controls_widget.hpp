@@ -33,6 +33,10 @@
 #include <gtkmm/button.h>
 #include <gtkmm/spinbutton.h>
 #include <gtkmm/box.h>
+#include <gtkmm/table.h>
+#include <gtkmm/checkbutton.h>
+#include <gtkmm/comboboxtext.h>
+#include <gtkmm/scale.h>
 
 #include <vector>
 #include "libgvideo/GVid_v4l2.h"
@@ -49,14 +53,28 @@ class GtkPanTilt : public Gtk::HBox
     Gtk::Button *button_1;
     Gtk::Button *button_2;
     Gtk::SpinButton *pt_step;
-    bool _is_pan;
     int _index;
     libgvideo::GVDevice* dev;
   public:
     GtkPanTilt(libgvideo::GVDevice* device, int index, bool is_pan);
-    int get_index();
-    bool IsPan();
 };
+
+
+class GtkControls: public Gtk::Table
+{
+  protected:
+    void on_button_clicked(int index);
+    void on_check_button_clicked(Gtk::CheckButton* control_widget, int index);
+    void on_combo_changed(Gtk::ComboBoxText* control_widget, int index);
+    void on_hscale_value_changed(Gtk::HScale* control_widget, int index);
+    std::vector<Gtk::HBox*> widgets_list;
+    void update_widgets();
+    libgvideo::GVDevice* dev;
+    
+  public:
+    GtkControls(libgvideo::GVDevice* device);
+};
+
 
 END_GVIDEOGTK_NAMESPACE
 #endif

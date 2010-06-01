@@ -13,9 +13,9 @@ AM_CFLAGS = \
 
 bin_PROGRAMS = gvideo-gtk
 
-h_sources = gv_gtk_window.h gv_video_threads.h gv_gtk_pan-tilt_widget.h
+h_sources = gv_gtk_window.h gv_video_threads.h gv_gtk_controls_widget.h
 
-cpp_sources = GVideo.cpp gv_gtk_window.cpp gv_video_threads.cpp gv_gtk_pan-tilt_widget.cpp
+cpp_sources = GVideo.cpp gv_gtk_window.cpp gv_video_threads.cpp gv_gtk_controls_widget.cpp
 
 gvideo_gtk_SOURCES = $(h_sources) $(cpp_sources)
 

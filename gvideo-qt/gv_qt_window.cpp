@@ -31,7 +31,7 @@
 #include <sstream>
 
 #include "gv_qt_window.hpp"
-#include "gv_qt_pan-tilt_widget.hpp"
+#include "gv_qt_controls_widget.hpp"
 #include "gvcommon.h"
 #include "libgvideo/GVid_v4l2.h"
 #include "libgvencoder/GVCodec.h"
@@ -142,133 +142,17 @@ QtWindow::QtWindow(
     buttonBox->setLayout(gv_ButtonBox);
     gv_VBox->addWidget(buttonBox);
 
-    controlPage = new QWidget(gv_Notebook);
+    controlPage = new GVControlsWidget( dev, gv_Notebook);
     videoPage = new QWidget(gv_Notebook);
     audioPage = new QWidget(gv_Notebook);
-    controlTable = new QGridLayout();
+    
     videoTable = new QGridLayout();
     audioTable = new QGridLayout();
     
     //image controls
     int i = 0;
     int j = 0;
-    
-    CombosignalMapper = NULL;
-    ChecksignalMapper = NULL;
-    SlidersignalMapper = NULL;
-    
-    for(i=0; i < dev->listControls.size(); i++)
-    {
-        QLabel  *control_label= new QLabel(QString(dev->listControls[i].name.c_str()));
-        controlTable->addWidget(control_label, i, 0);
-        int val = 0;
-        
-        switch(dev->listControls[i].type)
-        {
-            case V4L2_CTRL_TYPE_MENU:
-                {
-                    GVComboBox* control_widget = new GVComboBox(i);
-                    for (j=0; j<dev->listControls[i].entries.size(); j++)
-                    {
-                        control_widget->addItem(QString(dev->listControls[i].entries[j].c_str()));
-                    }
-                    if(dev->get_control_val (i, &val) != 0)
-                        control_widget->setCurrentIndex(dev->listControls[i].default_val);
-                    else
-                        control_widget->setCurrentIndex(val);
-                    
-                    controlTable->addWidget(control_widget, i, 1);
-                    //Connect signal handler:
-                    
-                    if(CombosignalMapper == NULL) CombosignalMapper = new QSignalMapper(this);
-                    CombosignalMapper->setMapping(control_widget, control_widget);
 
-                    QObject::connect(control_widget, SIGNAL(currentIndexChanged(int)), 
-                        CombosignalMapper, SLOT(map()));
-                    QObject::connect(CombosignalMapper, SIGNAL(mapped(QWidget*)),
-                        this, SLOT(on_combo_changed(QWidget*)));
-
-                }
-                break;
-                
-            case V4L2_CTRL_TYPE_BOOLEAN:
-                {
-                    GVCheckBox *control_widget = new GVCheckBox(i);
-                    if(dev->get_control_val (i, &val) != 0)
-                        control_widget->setChecked((dev->listControls[i].default_val > 0));
-                    else
-                        control_widget->setChecked(val > 0);
-
-                    controlTable->addWidget(control_widget, i, 1);
-                    //Connect signal handler:
-                    if(ChecksignalMapper == NULL) ChecksignalMapper = new QSignalMapper(this);
-                    ChecksignalMapper->setMapping(control_widget, control_widget);
-
-                    QObject::connect(control_widget, SIGNAL(stateChanged (int)), 
-                        ChecksignalMapper, SLOT(map()));
-                    QObject::connect(ChecksignalMapper, SIGNAL(mapped(QWidget*)),
-                        this, SLOT(on_check_button_clicked(QWidget*)));
-                }
-                break;
-                
-            case V4L2_CTRL_TYPE_INTEGER:
-                {
-                    if(dev->listControls[i].id == V4L2_CID_PAN_RELATIVE)
-                    {
-                        GVPanTiltWidget *control_widget = new GVPanTiltWidget( dev, i, true);
-                        controlTable->addWidget(control_widget, i, 1);
-                    }
-                    else if (dev->listControls[i].id == V4L2_CID_TILT_RELATIVE)
-                    {
-                        GVPanTiltWidget *control_widget = new GVPanTiltWidget( dev, i, false);
-                        controlTable->addWidget(control_widget, i, 1);
-                    }
-                    else
-                    {
-                        GVSlider *control_widget = new GVSlider( i );
-                        control_widget->setMinimum(dev->listControls[i].min);
-                        control_widget->setMaximum(dev->listControls[i].max);
-                        control_widget->setPageStep(dev->listControls[i].step);
-                        if(dev->get_control_val (i, &val) != 0)
-                            control_widget->setValue(dev->listControls[i].default_val);
-                        else
-                            control_widget->setValue(val);
-                        
-                        controlTable->addWidget(control_widget, i, 1);
-                        //Connect signal handler:
-                        if(SlidersignalMapper == NULL) SlidersignalMapper = new QSignalMapper(this);
-                        SlidersignalMapper->setMapping(control_widget, control_widget);
-
-                        QObject::connect(control_widget, SIGNAL(valueChanged (int) ), 
-                            SlidersignalMapper, SLOT(map()));
-                        QObject::connect(SlidersignalMapper, SIGNAL(mapped(QWidget*)),
-                            this, SLOT(on_slider_changed(QWidget*)));
-                    }
-                }
-                break;
-                
-            case V4L2_CTRL_TYPE_BUTTON:
-                {
-                    GVButton *control_widget = new GVButton( i );
-                    
-                    controlTable->addWidget(control_widget, i, 1);
-                    //Connect signal handler:
-                    if(ButtonsignalMapper == NULL) ButtonsignalMapper = new QSignalMapper(this);
-                        ButtonsignalMapper->setMapping(control_widget, control_widget);
-
-                    QObject::connect(control_widget, SIGNAL(clicked () ), 
-                        ButtonsignalMapper, SLOT(map()));
-                    QObject::connect(ButtonsignalMapper, SIGNAL(mapped(QWidget*)),
-                        this, SLOT(on_button_clicked(QWidget*)));
-                }
-                break;
-            
-            default:
-                std::cerr << "Control tpye: " << std::hex << std::showbase 
-                    << dev->listControls[i].type << " not supported\n";
-        }
-    }
-    controlPage->setLayout(controlTable);
     gv_Notebook->addTab(controlPage,QIcon(QString(PACKAGE_DATA_DIR) + QString("/pixmaps/gvideo/image_controls.png")),"Image Controls");
     gv_Notebook->setIconSize(QSize(32,32));
     //video stream definitions
@@ -403,82 +287,6 @@ QtWindow::QtWindow(
 QtWindow::~QtWindow()
 {
     std::cout << "The Window was destroyed\n";
-}
-
-void QtWindow::on_check_button_clicked(QWidget* control)
-{
-    GVCheckBox* checkbox = (GVCheckBox*) control;
-    int val = checkbox->isChecked() ? 1 : 0;
-    int index = checkbox->get_index();
-    if(!(dev->set_control_val (index, val)))
-    {
-        std::cout << dev->listControls[index].name << " = " << val << std::endl;
-    }
-    else
-    {
-        std::cerr << "ERROR:couldn't set " << dev->listControls[index].name << " = " << val << std::endl;
-        dev->get_control_val (index, &val);
-        checkbox->blockSignals(true);
-        if(val) checkbox->setChecked(true);
-        else checkbox->setChecked(false);
-        checkbox->blockSignals(false);
-    }
-}
-
-void QtWindow::on_combo_changed(QWidget* control)
-{
-    GVComboBox* combobox = (GVComboBox*) control;
-    int val = combobox->currentIndex();
-    int index = combobox->get_index();
-    
-    if(!(dev->set_control_val (index, val)))
-    {
-        std::cout << dev->listControls[index].name << " = " << val << std::endl;
-    }
-    else
-    {
-        std::cerr << "ERROR:couldn't set " << dev->listControls[index].name << " = " << val << std::endl;
-        dev->get_control_val (index, &val);
-        combobox->blockSignals(true);
-        combobox->setCurrentIndex(val);
-        combobox->blockSignals(false);
-    }
-}
-
-void QtWindow::on_slider_changed(QWidget* control)
-{
-    GVSlider* slider = (GVSlider*) control;
-    int val = slider->value();
-    int index = slider->get_index();
-    
-    if(!(dev->set_control_val (index, val)))
-    {
-        //std::cout << dev->listControls[index].name << " = " << val << std::endl;
-    }
-    else
-    {
-        std::cerr << "ERROR:couldn't set " << dev->listControls[index].name << " = " << val << std::endl;
-        dev->get_control_val (index, &val);
-        slider->blockSignals(true);
-        slider->setValue(val);
-        slider->blockSignals(false);
-    }
-}
-
-void QtWindow::on_button_clicked(QWidget* control)
-{
-    GVButton* button = (GVButton*) control;
-    
-    int index = button->get_index();
-    
-    if(!(dev->set_control_val (index, 1)))
-    {
-        //std::cout << dev->listControls[index].name << " = " << val << std::endl;
-    }
-    else
-    {
-        std::cerr << "ERROR:couldn't set " << dev->listControls[index].name << std::endl;
-    }
 }
 
 void QtWindow::on_video_format_combo_changed(int index)

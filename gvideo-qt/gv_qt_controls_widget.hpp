@@ -28,6 +28,7 @@
 #ifndef GVQT_PAN_TILT_WIDGET_H
 #define GVQT_PAN_TILT_WIDGET_H
 
+#include <vector>
 #include <QtGui>
 #include <QTabWidget>
 #include <QPushButton>
@@ -44,6 +45,41 @@
 #include "libgvideo/GVid_v4l2.h"
 
 namespace gvideoqt {
+class GVComboBox: public QComboBox
+{
+  protected:
+    int index;
+  public:
+    GVComboBox(int i, QWidget * parent = 0);
+    int get_index();
+};
+
+class GVCheckBox: public QCheckBox
+{
+  protected:
+    int index;
+  public:
+    GVCheckBox(int i, QWidget * parent = 0);
+    int get_index();
+};
+
+class GVSlider: public QSlider
+{
+  protected:
+    int index;
+  public:
+    GVSlider(int i, QWidget * parent = 0);
+    int get_index();
+};
+
+class GVButton: public QPushButton
+{
+  protected:
+    int index;
+  public:
+    GVButton(int i, const QString name = 0, QWidget * parent = 0);
+    int get_index();
+};
 
 class GVPanTiltWidget: public QWidget
 {
@@ -64,6 +100,41 @@ class GVPanTiltWidget: public QWidget
     GVPanTiltWidget(libgvideo::GVDevice* device, int index, bool is_pan, QWidget * parent = 0);
     int get_index();
     bool IsPan();
+};
+
+class GVControlEnt: public QWidget
+{
+  protected:
+    QHBoxLayout *hbox;
+  public:
+    GVControlEnt(QLabel *label, QWidget *parent = 0);
+    void addWidget(QWidget *control_widget);    
+};
+
+class GVControlsWidget: public QWidget
+{
+  Q_OBJECT
+  
+  private slots:
+    //v4l2 widget controls
+    void on_check_button_clicked(QWidget* control);
+    void on_combo_changed(QWidget* control);
+    void on_slider_changed(QWidget* control);
+    void on_button_clicked(QWidget* control);
+  
+  protected:
+    libgvideo::GVDevice* dev;
+    QVBoxLayout *controlTable;
+    //Signal handlers:
+    QSignalMapper *CombosignalMapper;
+    QSignalMapper *ChecksignalMapper;
+    QSignalMapper *SlidersignalMapper;
+    QSignalMapper *ButtonsignalMapper;
+    std::vector<QWidget *> widgets_list;
+    void update_widgets();
+    
+  public:
+    GVControlsWidget(libgvideo::GVDevice* device, QWidget *parent = 0);
 };
 
 }; //end namespace

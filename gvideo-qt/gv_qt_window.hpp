@@ -47,42 +47,6 @@
 
 namespace gvideoqt {
 
-class GVComboBox: public QComboBox
-{
-  protected:
-    int index;
-  public:
-    GVComboBox(int i, QWidget * parent = 0);
-    int get_index();
-};
-
-class GVCheckBox: public QCheckBox
-{
-  protected:
-    int index;
-  public:
-    GVCheckBox(int i, QWidget * parent = 0);
-    int get_index();
-};
-
-class GVSlider: public QSlider
-{
-  protected:
-    int index;
-  public:
-    GVSlider(int i, QWidget * parent = 0);
-    int get_index();
-};
-
-class GVButton: public QPushButton
-{
-  protected:
-    int index;
-  public:
-    GVButton(int i, const QString name = 0, QWidget * parent = 0);
-    int get_index();
-};
-
 class QtWindow : public QWidget
 {
     Q_OBJECT
@@ -91,11 +55,6 @@ class QtWindow : public QWidget
     void on_button_quit();
     void on_button_pic();
     void on_button_vid();
-    //v4l2 widget controls
-    void on_check_button_clicked(QWidget* control);
-    void on_combo_changed(QWidget* control);
-    void on_slider_changed(QWidget* control);
-    void on_button_clicked(QWidget* control);
     void on_video_format_combo_changed(int index);
     void on_resolution_combo_changed(int index);
     void on_fps_combo_changed(int index);
@@ -104,11 +63,6 @@ class QtWindow : public QWidget
     void on_acodec_combo_changed(int index);
     
   private:
-    //Signal handlers:
-    QSignalMapper *CombosignalMapper;
-    QSignalMapper *ChecksignalMapper;
-    QSignalMapper *SlidersignalMapper;
-    QSignalMapper *ButtonsignalMapper;
     //Child widgets:
     QTabWidget* gv_Notebook;
 
@@ -158,8 +112,8 @@ class QtWindow : public QWidget
         libgvaudio::GVAudio* _audio,
         libgvencoder::GVCodec*  _encoder = NULL,
         GVVideoThreads* _th_video = NULL,
-        int _format = 0, 
-        int _resolution = 0, 
+        int _format = 0,
+        int _resolution = 0,
         int _fps = 0);
         
     virtual ~QtWindow();

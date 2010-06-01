@@ -21,77 +21,60 @@
 
 /*******************************************************************************#
 #                                                                               #
-#  GVideo V4L2 video grabber and control panel - Qt PanTilt widget              #
+#  GVideo V4L2 video grabber and control panel - Gtk  pan-tilt widget           #
 #                                                                               #
 ********************************************************************************/
 
-#include "gv_qt_pan-tilt_widget.hpp"
-#include "gvcommon.h"
-#include <iostream>
+#ifndef GVGTK_PAN_TILT_WIDGET_H
+#define GVGTK_PAN_TILT_WIDGET_H
+
+
+
+#include <gtkmm/button.h>
+#include <gtkmm/spinbutton.h>
+#include <gtkmm/box.h>
+#include <gtkmm/table.h>
+#include <gtkmm/checkbutton.h>
+#include <gtkmm/comboboxtext.h>
+#include <gtkmm/scale.h>
+
 #include <vector>
+#include "libgvideo/GVid_v4l2.h"
+#include "gvcommon.h"
 
-START_GVIDEOQT_NAMESPACE
+START_GVIDEOGTK_NAMESPACE
 
-GVPanTiltWidget::GVPanTiltWidget( libgvideo::GVDevice* device, int index, bool is_pan, QWidget * parent)
-    : QWidget  (parent)
+class GtkPanTilt : public Gtk::HBox
 {
-    _index = index;
-    _is_pan = is_pan;
-    dev = device;
-    //add the buttons
-    gv_ButtonBox = new QHBoxLayout();
-    gv_ButtonBox->setSpacing( 1 );
-    gv_ButtonBox->setMargin( 0 );
+  protected:
+    //Signal handlers:
+    void on_button_1();
+    void on_button_2();
+    Gtk::Button *button_1;
+    Gtk::Button *button_2;
+    Gtk::SpinButton *pt_step;
+    int _index;
+    libgvideo::GVDevice* dev;
+  public:
+    GtkPanTilt(libgvideo::GVDevice* device, int index, bool is_pan);
+};
 
-    pt_step = new QSpinBox();
-    pt_step->setMinimum(-256);
-    pt_step->setMaximum(256);
-    pt_step->setSingleStep(64);
-    gv_Button_1= new QPushButton();
-    gv_Button_2= new QPushButton();
-    if(_is_pan)
-    {
-        pt_step->setPrefix("step  ");
-        pt_step->setValue(-128);
-        gv_Button_1->setText("Left");
-        gv_Button_2->setText("Right");
-    }
-    else //is Tilt
-    {
-        pt_step->setPrefix("step  ");
-        pt_step->setValue(-128);
-        gv_Button_1->setText("Up");
-        gv_Button_2->setText("Down");
-    }
-    gv_ButtonBox->addWidget(gv_Button_1);
-    gv_ButtonBox->addWidget(gv_Button_2);
-    gv_ButtonBox->addWidget(pt_step);
+
+class GtkControls: public Gtk::Table
+{
+  protected:
+    void on_button_clicked(int index);
+    void on_check_button_clicked(Gtk::CheckButton* control_widget, int index);
+    void on_combo_changed(Gtk::ComboBoxText* control_widget, int index);
+    void on_hscale_value_changed(Gtk::HScale* control_widget, int index);
+    std::vector<Gtk::HBox*> widgets_list;
+    void update_widgets();
+    libgvideo::GVDevice* dev;
     
-    this->setLayout(gv_ButtonBox);
-    
-    //connect signals
-    QObject::connect(gv_Button_1, SIGNAL(clicked()), this, SLOT(on_button_1()));
-    QObject::connect(gv_Button_2, SIGNAL(clicked()), this, SLOT(on_button_2()));
-}
+  public:
+    GtkControls(libgvideo::GVDevice* device);
+};
 
-void GVPanTiltWidget::on_button_1()
-{
-    int val = pt_step->value();
-    if(dev->set_control_val (_index, val))
-    {
-        std::cerr << "ERROR:couldn't set " << dev->listControls[_index].name.c_str()
-            << " to " << val << std::endl;
-    }
-}
 
-void GVPanTiltWidget::on_button_2()
-{
-    int val = -(pt_step->value());
-    if(dev->set_control_val (_index, val))
-    {
-        std::cerr << "ERROR:couldn't set " << dev->listControls[_index].name.c_str()
-            << " to " << val << std::endl;
-    }
-}
-
-END_GVIDEOQT_NAMESPACE
+END_GVIDEOGTK_NAMESPACE
+#endif

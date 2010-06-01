@@ -45,6 +45,7 @@
 #include "libgvideo/GVid_v4l2.h"
 #include "libgvaudio/GVAudio.h"
 #include "gv_video_threads.h"
+#include "gv_gtk_controls_widget.h"
 
 START_GVIDEOGTK_NAMESPACE
 
@@ -55,11 +56,6 @@ class GtkWindow : public Gtk::Window
     void on_button_quit();
     void on_button_pic();
     void on_button_vid();
-    // generic controls
-    void on_check_button_clicked(Gtk::CheckButton* checkButton, int cindex);
-    void on_combo_changed(Gtk::ComboBoxText* comboBox, int cindex);
-    void on_hscale_value_changed(Gtk::HScale* hScale, int cindex);
-    void on_button_clicked(Gtk::Button* Button, int cindex);
     // video format controls
     void on_video_format_combo_changed();
     void on_resolution_combo_changed();

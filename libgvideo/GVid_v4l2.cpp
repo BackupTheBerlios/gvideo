@@ -126,6 +126,24 @@ bool GVDevice::isOpen()
     if (fd < 0) return false;
     else return true;
 }
+
+/* get Control index from available format list
+ * args:
+ * format: Control ID
+ *
+ * returns index of the control or -1 if not found 
+ */
+int GVDevice::get_control_index(int id)
+{
+    int i = 0;
+    for (i=0; i<listControls.size(); i++)
+    {
+        if(listControls[i].control.id == id)
+            return (i);
+    }
+    
+    return (-1);
+}
 /* get Format index from available format list
  * args:
  * format: v4l2 pix format
@@ -199,7 +217,7 @@ void GVDevice::clean_buffers()
                 rb.memory = V4L2_MEMORY_MMAP;
                 if(xioctl(VIDIOC_REQBUFS, &rb)<0)
                 {
-                    std::cerr << "VIDIOC_REQBUFS - Failed to delete buffers: " 
+                    std::cerr << "libgvideo: VIDIOC_REQBUFS Failed to delete buffers: " 
                         << strerror(errno) << "(errno " << errno << ")\n";
                 }
                 break;
@@ -236,8 +254,10 @@ void GVDevice::freeControls()
     
     for(i=0;i<listControls.size();i++)
     {
-        if(listControls[i].type == V4L2_CTRL_TYPE_MENU)
+        if(listControls[i].control.type == V4L2_CTRL_TYPE_MENU)
             listControls[i].entries.clear();
+        if(listControls[i].control.type == V4L2_CTRL_TYPE_STRING)
+            delete[] listControls[i].value_str;
     }
     listControls.clear();
     if(verbose) std::cout << "cleaned Controls list\n";
@@ -397,7 +417,7 @@ int GVDevice::enum_frame_sizes( int pixfmt, int fmtind )
     }
     if (ret != 0 && errno != EINVAL) 
     {
-        std::cerr << "VIDIOC_ENUM_FRAMESIZES - Error enumerating frame sizes:" << strerror(errno) << std::endl;
+        std::cerr << "libgvideo: VIDIOC_ENUM_FRAMESIZES Error enumerating frame sizes:" << strerror(errno) << std::endl;
         return errno;
     } 
     else if ((ret != 0) && (fsizeind == 0)) 
@@ -511,18 +531,18 @@ int GVDevice::check_input()
 
     if ( (ret = xioctl(VIDIOC_QUERYCAP, &cap)) < 0 ) 
     {
-        std::cerr << "VIDIOC_QUERYCAP error" << ret << std::endl;
+        std::cerr << "libgvideo: VIDIOC_QUERYCAP error" << ret << std::endl;
         return -1;
     }
 
     if ( ( cap.capabilities & V4L2_CAP_VIDEO_CAPTURE ) == 0) 
     {
-        std::cerr << "Error opening device " << dev_name << ": video capture not supported" << std::endl;
+        std::cerr << "libgvideo: Error opening device " << dev_name << ": video capture not supported" << std::endl;
         return -1;
     }
     if (!(cap.capabilities & V4L2_CAP_STREAMING)) 
     {
-        std::cerr << dev_name << " does not support streaming i/o" << std::endl; 
+        std::cerr << "libgvideo: " << dev_name << " does not support streaming i/o" << std::endl; 
         return -1;
     }
 
@@ -531,7 +551,7 @@ int GVDevice::check_input()
         mem[buff_index] = NULL;
         if (!(cap.capabilities & V4L2_CAP_READWRITE)) 
         {
-            std::cerr << dev_name << " does not support read i/o" << std::endl;
+            std::cerr << "libgvideo: " << dev_name << " does not support read i/o" << std::endl;
             return -2;
         }
     }
@@ -542,7 +562,7 @@ int GVDevice::check_input()
     enum_frame_formats();
 
     if ( listVidFormats.size() <= 0)
-        std::cerr << "Couldn't detect any supported formats on your device" 
+        std::cerr << "libgvideo: Couldn't detect any supported formats on your device " 
             << listVidFormats.size() << std::endl;
 
     return 0;
@@ -551,31 +571,17 @@ int GVDevice::check_input()
 int GVDevice::add_control(int n, struct v4l2_queryctrl *queryctrl)
 {
     // Add control to control list
+    //std::cout << "adding control [" << n-1 << "] " << queryctrl->name << "...";
     listControls.resize(n);
     listControls[n-1].i = n-1;
-    listControls[n-1].id = queryctrl->id;
-    listControls[n-1].type = queryctrl->type;
-    //allocate control name (must free it on exit)
-    listControls[n-1].name = strdup ((char *) queryctrl->name);
-    listControls[n-1].min = queryctrl->minimum;
-    listControls[n-1].max = queryctrl->maximum;
-    listControls[n-1].step = queryctrl->step;
-    listControls[n-1].default_val = queryctrl->default_value;
-    listControls[n-1].enabled = (queryctrl->flags & V4L2_CTRL_FLAG_GRABBED) ? 0 : 1;
- 
-    if (queryctrl->type == V4L2_CTRL_TYPE_BOOLEAN)
-    {
-        listControls[n-1].min = 0;
-        listControls[n-1].max = 1;
-        listControls[n-1].step = 1;
-        /*get the first bit*/
-        listControls[n-1].default_val=(queryctrl->default_value & 0x0001);
-    } 
-    else if (queryctrl->type == V4L2_CTRL_TYPE_MENU) 
+    listControls[n-1].ctrl_class = (queryctrl->id & 0xFFFF0000);
+    memcpy(&(listControls[n-1].control), queryctrl, sizeof(struct v4l2_queryctrl));
+   
+    if (queryctrl->type == V4L2_CTRL_TYPE_MENU) 
     {
         struct v4l2_querymenu querymenu;
         memset(&querymenu,0,sizeof(struct v4l2_querymenu));
-        listControls[n-1].min = 0;
+        listControls[n-1].control.minimum = 0;
         querymenu.id = queryctrl->id;
         querymenu.index = 0;
         while ( xioctl(VIDIOC_QUERYMENU, &querymenu) == 0 ) 
@@ -586,8 +592,15 @@ int GVDevice::add_control(int n, struct v4l2_queryctrl *queryctrl)
             listControls[n-1].entries[querymenu.index] = std::string((char *) querymenu.name);
             querymenu.index++;
         }
-        listControls[n-1].max = querymenu.index - 1;
+        if(listControls[n-1].control.maximum != querymenu.index - 1)
+            std::cerr << "libgvideo: menu maximum(" << listControls[n-1].control.maximum << "max index(" 
+                << querymenu.index - 1 << ")\n";
     }
+    else if (queryctrl->type == V4L2_CTRL_TYPE_STRING) 
+    {
+        listControls[n-1].value_str = new char[queryctrl->maximum + 1];
+    }
+    //std::cout << "finished \n";
 }
 
 int GVDevice::check_controls()
@@ -595,8 +608,7 @@ int GVDevice::check_controls()
     int ret=0;
     int tries=4;
     int n = 0;
-    struct v4l2_queryctrl queryctrl; 
-    memset(&queryctrl,0,sizeof(struct v4l2_queryctrl));
+    struct v4l2_queryctrl queryctrl = {0}; 
 
     queryctrl.id = 0 | V4L2_CTRL_FLAG_NEXT_CTRL;
 
@@ -626,7 +638,7 @@ int GVDevice::check_controls()
                     queryctrl.id = currentctrl | V4L2_CTRL_FLAG_NEXT_CTRL;
                 }
                 if ( ret && ( tries <= 0)) 
-                    std::cerr << "Failed to query control id=" << currentctrl 
+                    std::cerr << "libgvideo: Failed to query control id=" << currentctrl 
                         << "tried 4 times - giving up:" << strerror(errno) << std::endl;
             }
             // Prevent infinite loop for buggy NEXT_CTRL implementations
@@ -692,47 +704,437 @@ next_control:
             add_control(n, &queryctrl);
         }
     }
+    
+    //get the controls current value
+    get_all_controls_val();
 }
 
-/* get device control value
+/* runs the control list and gets the controls values
+ * args:
+ * returns:
+ */
+void GVDevice::get_all_controls_val()
+{
+    int i = 0;
+    int j = 0;
+    int count = 0;
+    bool process = false;
+    struct v4l2_ext_control clist[listControls.size()];
+    
+    for (i=0; i< listControls.size(); i++)
+    {
+        if(listControls[i].control.flags & V4L2_CTRL_FLAG_WRITE_ONLY)
+            continue;
+        //std::cout << "control[" << i << "] ...";
+        clist[count].id = listControls[i].control.id;
+        clist[count].size = 0;
+        if(listControls[i].control.type == V4L2_CTRL_TYPE_STRING)
+        {
+            clist[count].size = listControls[i].control.maximum + 1;
+            clist[count].string = listControls[i].value_str; 
+        }
+        count++;
+        
+        if(listControls.size() <= i+1)
+            process = true;
+        else if (listControls[i+1].ctrl_class != listControls[i].ctrl_class)
+            process = true;
+            
+        if (process)    
+        {
+            //get all controls in the same class
+            struct v4l2_ext_controls ctrls = {0};
+            ctrls.ctrl_class = listControls[i].ctrl_class;
+            ctrls.count = count;
+            ctrls.controls = clist;
+            if(xioctl(VIDIOC_G_EXT_CTRLS, &ctrls))
+            {
+                for(j=0; j< count; j++)
+                {
+                    //get one by one
+                    get_control_val(clist[j].id);
+                }
+            }
+            else
+            {
+                for(j=0; j<count; j++)
+                {
+                    int index = get_control_index(clist[j].id);
+                    switch(listControls[index].control.type)
+                    {
+                    case V4L2_CTRL_TYPE_STRING:
+                        //string gets set on VIDIOC_G_EXT_CTRLS
+                        //add the maximum size to value
+                        listControls[index].value = clist[j].size;
+                        break;
+                    case V4L2_CTRL_TYPE_INTEGER64:
+                        listControls[index].value64 = clist[j].value64;
+                        break;
+                    default:
+                        listControls[index].value = clist[j].value;
+                        //printf("control %i [0x%08x] = %i\n", 
+                        //    i, clist[i].id, clist[i].value);
+                        break;
+                }
+                }
+            }
+            count = 0;
+            process = false;
+        }
+        //std::cout << " finished\n";
+    }
+    
+    update_control_list_flags();
+}
+
+/* get device control value and updates it in the control list
  * args:
  * control_index: control index from listControls 
- * val: pointer to control value
- * returns: VIDIOC_G_CTRL return value ( failure  < 0 )                                                  */
-int GVDevice::get_control_val (int control_index, int * val)
+ * returns: VIDIOC_G_CTRL return value ( failure  < 0 )
+ */
+int GVDevice::get_control_val (int control_index)
 {
     int ret=0;
-    struct v4l2_control c;
-    memset(&c,0,sizeof(struct v4l2_control));
-
-    c.id  = listControls[control_index].id;
-    ret = xioctl (VIDIOC_G_CTRL, &c);
-    if (ret == 0) 
-        *val = c.value;
-    else 
-        std::cerr << "VIDIOC_G_CTRL - Unable to get control:" << strerror(errno) << std::endl;
-
+    if(listControls[control_index].ctrl_class == V4L2_CTRL_CLASS_USER)
+    {
+        struct v4l2_control c = {0};
+        c.id  = listControls[control_index].control.id;
+        ret = xioctl (VIDIOC_G_CTRL, &c);
+        if (!ret) 
+            listControls[control_index].value = c.value;
+    }
+    else
+    {
+        struct v4l2_ext_controls ctrls = {0};
+        struct v4l2_ext_control ctrl = {0};
+        ctrl.id = listControls[control_index].control.id;
+        ctrl.size = 0;
+        if(listControls[control_index].control.type == V4L2_CTRL_TYPE_STRING)
+        {
+            ctrl.size = listControls[control_index].control.maximum + 1;
+            ctrl.string = listControls[control_index].value_str; 
+        }
+        ctrls.count = 1;
+        ctrls.controls = &ctrl;
+        ret = xioctl(VIDIOC_G_EXT_CTRLS, &ctrls);
+        if(!ret)
+        {
+            switch(listControls[control_index].control.type)
+            {
+                case V4L2_CTRL_TYPE_STRING:
+                    //string gets set on VIDIOC_G_EXT_CTRLS
+                    //add the maximum size to value
+                    listControls[control_index].value = ctrl.size;
+                    break;
+                case V4L2_CTRL_TYPE_INTEGER64:
+                    listControls[control_index].value64 = ctrl.value64;
+                    break;
+                default:
+                    listControls[control_index].value = ctrl.value;
+                    //printf("control %i [0x%08x] = %i\n", 
+                    //    i, clist[i].id, clist[i].value);
+                    break;
+            }
+        }
+    }
+    
+    update_control_flags(listControls[control_index].control.id);
+    
+    if(ret)
+        std::cerr << "libgvideo: "<< listControls[control_index].control.name 
+            << " failed to get value: " << strerror(errno) << std::endl;
     return ret;
 }
 
-/* set device control value
+/* sets all the control list values into the hardware
+ * args:
+ *
+ * returns: 
+ */
+void GVDevice::set_all_controls_val ()
+{
+    int i = 0;
+    int j = 0;
+    int count = 0;
+    bool process = false;
+    
+    struct v4l2_ext_control clist[listControls.size()];
+    
+    for (i=0; i< listControls.size(); i++)
+    {
+        if(listControls[i].control.flags & V4L2_CTRL_FLAG_READ_ONLY)
+            continue;
+        clist[count].id = listControls[i].control.id;
+        clist[count].size = 0;
+        if(listControls[i].control.type == V4L2_CTRL_TYPE_STRING)
+        {
+            clist[count].size = listControls[i].control.maximum + 1;
+            clist[count].string = listControls[i].value_str; 
+        }
+        else if (listControls[i].control.type == V4L2_CTRL_TYPE_INTEGER64)
+        {
+            clist[count].value64 = listControls[i].value64;
+        }
+        else
+            clist[count].value = listControls[i].value;
+            
+        count++;
+        
+        if(listControls.size() <= i+1)
+            process = true;
+        else if (listControls[i+1].ctrl_class != listControls[i].ctrl_class)
+            process = true;
+        
+        if(process)
+        {
+            //set all controls in the same class
+            struct v4l2_ext_controls ctrls = {0};
+            ctrls.ctrl_class = listControls[i].ctrl_class;
+            ctrls.count = count;
+            ctrls.controls = clist;
+            if(xioctl(VIDIOC_S_EXT_CTRLS, &ctrls))
+            {
+                for(j=0; j< count; j++)
+                {
+                    //set one by one
+                    set_control_val(clist[j].id);
+                }
+            }
+            count = 0;
+            process = false;
+        }
+    }
+    //get real values from the hardware
+    get_all_controls_val();
+}
+
+/* sets the control value into the hardware
  * args:
  * control_index: control index from listControls
- * val: control value 
  *
  * returns: VIDIOC_S_CTRL return value ( failure  < 0 )                   */
-int GVDevice::set_control_val (int control_index, int val)
+int GVDevice::set_control_val (int control_index)
 {
     int ret=0;
-    struct v4l2_control c;
+    
+    if(listControls[control_index].control.flags & V4L2_CTRL_FLAG_READ_ONLY)
+        return (-1);
 
-    c.id  = listControls[control_index].id;
-    c.value = val;
-    ret = xioctl (VIDIOC_S_CTRL, &c);
-    if (ret < 0) 
-        std::cerr << "VIDIOC_S_CTRL - Unable to set control:" << strerror(errno) << std::endl;
-
+    if( listControls[control_index].ctrl_class == V4L2_CTRL_CLASS_USER)
+    {
+        struct v4l2_control ctrl;
+        //printf("   using VIDIOC_G_CTRL for user class controls\n");
+        ctrl.id = listControls[control_index].control.id;
+        ctrl.value = listControls[control_index].value;
+        ret = xioctl(VIDIOC_S_CTRL, &ctrl);
+    }
+    else
+    {
+        //printf("   using VIDIOC_G_EXT_CTRLS on single controls for class: 0x%08x\n", 
+        //    current->class);
+        struct v4l2_ext_controls ctrls = {0};
+        struct v4l2_ext_control ctrl = {0};
+        ctrl.id = listControls[control_index].control.id;
+        switch (listControls[control_index].control.type)
+        {
+            case V4L2_CTRL_TYPE_STRING:
+                ctrl.size = listControls[control_index].value;
+                ctrl.string = listControls[control_index].value_str;
+                break;
+            case V4L2_CTRL_TYPE_INTEGER64:
+                ctrl.value64 = listControls[control_index].value64;
+                break;
+            default:
+                ctrl.value = listControls[control_index].value;
+                break;
+        }
+        ctrls.count = 1;
+        ctrls.controls = &ctrl;
+        ret = xioctl(VIDIOC_S_EXT_CTRLS, &ctrls);
+    }
+    
+    if(ret)
+        std::cerr << "libgvideo: "<< listControls[control_index].control.name 
+            << " failed to set value: " << strerror(errno) << std::endl;
+            
+    //update with real value 
+    get_control_val (control_index);
     return ret;
+}
+
+/* updates related control flags for control id
+ * args:
+ * control_id: control v4l2 id
+ *
+ * returns: 
+ */
+void GVDevice::update_control_flags(int id)
+{
+    int index = get_control_index( id );
+    if (index < 0)
+        return;
+        
+    switch (id) 
+    {
+        case V4L2_CID_EXPOSURE_AUTO:
+            {   
+                switch (listControls[index].value) 
+                {
+                    case V4L2_EXPOSURE_AUTO:
+                        {
+                            //printf("auto\n");
+                            int ref_index = get_control_index(V4L2_CID_IRIS_ABSOLUTE );
+                            if (ref_index >= 0)
+                                listControls[ref_index].control.flags |= V4L2_CTRL_FLAG_GRABBED;
+                    
+                            ref_index = get_control_index(V4L2_CID_IRIS_RELATIVE );
+                            if (ref_index >= 0)
+                                listControls[ref_index].control.flags |= V4L2_CTRL_FLAG_GRABBED;
+                                
+                            ref_index = get_control_index(V4L2_CID_EXPOSURE_ABSOLUTE );
+                            if (ref_index >= 0)
+                                listControls[ref_index].control.flags |= V4L2_CTRL_FLAG_GRABBED;
+                        }
+                        break;
+                        
+                    case V4L2_EXPOSURE_APERTURE_PRIORITY:
+                        {
+                            int ref_index = get_control_index(V4L2_CID_EXPOSURE_ABSOLUTE );
+                            if (ref_index >= 0)
+                                listControls[ref_index].control.flags |= V4L2_CTRL_FLAG_GRABBED;
+                                
+                            ref_index = get_control_index(V4L2_CID_IRIS_ABSOLUTE );
+                            if (ref_index >= 0)
+                                listControls[ref_index].control.flags &= !(V4L2_CTRL_FLAG_GRABBED);
+                                
+                            ref_index = get_control_index(V4L2_CID_IRIS_RELATIVE );
+                            if (ref_index >= 0)
+                                listControls[ref_index].control.flags &= !(V4L2_CTRL_FLAG_GRABBED);
+                        }
+                        break;
+                        
+                    case V4L2_EXPOSURE_SHUTTER_PRIORITY:
+                        {
+                            int ref_index = get_control_index(V4L2_CID_IRIS_ABSOLUTE );
+                            if (ref_index >= 0)
+                                listControls[ref_index].control.flags |= V4L2_CTRL_FLAG_GRABBED;
+                            
+                            ref_index = get_control_index(V4L2_CID_IRIS_RELATIVE );
+                            if (ref_index >= 0)
+                                listControls[ref_index].control.flags |= V4L2_CTRL_FLAG_GRABBED;
+                                
+                            ref_index = get_control_index(V4L2_CID_EXPOSURE_ABSOLUTE );
+                            if (ref_index >= 0)
+                                listControls[ref_index].control.flags &= !(V4L2_CTRL_FLAG_GRABBED);
+                        }
+                        break;
+                    
+                    default:
+                        {
+                            int ref_index = get_control_index(V4L2_CID_EXPOSURE_ABSOLUTE );
+                            if (ref_index >= 0)
+                                listControls[ref_index].control.flags &= !(V4L2_CTRL_FLAG_GRABBED);
+                                
+                            ref_index = get_control_index(V4L2_CID_IRIS_ABSOLUTE );
+                            if (ref_index >= 0)
+                                listControls[ref_index].control.flags &= !(V4L2_CTRL_FLAG_GRABBED);
+                                
+                            ref_index = get_control_index(V4L2_CID_IRIS_RELATIVE );
+                            if (ref_index >= 0)
+                                listControls[ref_index].control.flags &= !(V4L2_CTRL_FLAG_GRABBED);
+                        }
+                        break;
+                }
+            }
+            break;
+
+        case V4L2_CID_FOCUS_AUTO:
+            {
+                if(listControls[index].value > 0) 
+                {
+                    int ref_index = get_control_index(V4L2_CID_FOCUS_ABSOLUTE);
+                    if (ref_index >= 0)
+                        listControls[ref_index].control.flags |= V4L2_CTRL_FLAG_GRABBED;
+                            
+                    ref_index = get_control_index(V4L2_CID_FOCUS_RELATIVE);
+                    if (ref_index >= 0)
+                        listControls[ref_index].control.flags |= V4L2_CTRL_FLAG_GRABBED;
+                }
+                else
+                {
+                    int ref_index = get_control_index(V4L2_CID_FOCUS_ABSOLUTE);
+                    if (ref_index >= 0)
+                        listControls[ref_index].control.flags &= !(V4L2_CTRL_FLAG_GRABBED);
+                         
+                    ref_index = get_control_index(V4L2_CID_FOCUS_RELATIVE);
+                    if (ref_index >= 0)
+                        listControls[ref_index].control.flags &= !(V4L2_CTRL_FLAG_GRABBED);
+                }
+            }
+            break;
+            
+        case V4L2_CID_HUE_AUTO:
+            {
+                if(listControls[index].value > 0) 
+                {
+                    int ref_index = get_control_index(V4L2_CID_HUE);
+                    if (ref_index >= 0)
+                        listControls[ref_index].control.flags |= V4L2_CTRL_FLAG_GRABBED;
+                }
+                else
+                {
+                    int ref_index = get_control_index(V4L2_CID_HUE);
+                    if (ref_index >= 0)
+                        listControls[ref_index].control.flags &= !(V4L2_CTRL_FLAG_GRABBED);
+                }
+            }
+            break;
+
+        case V4L2_CID_AUTO_WHITE_BALANCE:
+            {
+                if(listControls[index].value > 0) 
+                {
+                    int ref_index = get_control_index(V4L2_CID_WHITE_BALANCE_TEMPERATURE);
+                    if (ref_index >= 0)
+                        listControls[ref_index].control.flags |= V4L2_CTRL_FLAG_GRABBED;
+                        
+                    ref_index = get_control_index(V4L2_CID_BLUE_BALANCE);
+                    if (ref_index >= 0)
+                        listControls[ref_index].control.flags |= V4L2_CTRL_FLAG_GRABBED;
+                        
+                    ref_index = get_control_index(V4L2_CID_RED_BALANCE);
+                    if (ref_index >= 0)
+                        listControls[ref_index].control.flags |= V4L2_CTRL_FLAG_GRABBED;
+                }
+                else
+                {
+                    int ref_index = get_control_index(V4L2_CID_WHITE_BALANCE_TEMPERATURE);
+                    if (ref_index >= 0)
+                        listControls[ref_index].control.flags &= !(V4L2_CTRL_FLAG_GRABBED);
+                        
+                    ref_index = get_control_index(V4L2_CID_BLUE_BALANCE);
+                    if (ref_index >= 0)
+                        listControls[ref_index].control.flags &= !(V4L2_CTRL_FLAG_GRABBED);
+                        
+                    ref_index = get_control_index(V4L2_CID_RED_BALANCE);
+                    if (ref_index >= 0)
+                        listControls[ref_index].control.flags &= !(V4L2_CTRL_FLAG_GRABBED);
+                }
+            }
+            break;
+    }
+}
+
+/*
+ * updates the flags for all controls in the control list
+ */
+void GVDevice::update_control_list_flags()
+{
+    int i = 0;
+    for (i = 0; i < listControls.size(); i++)
+    {
+        update_control_flags(listControls[i].control.id);
+    }
 }
 
 int GVDevice::map_buff()
@@ -749,7 +1151,7 @@ int GVDevice::map_buff()
             buff_offset[i]);
         if (mem[i] == MAP_FAILED) 
         {
-            std::cerr << "Unable to map buffer[" << i << "]:" << strerror(errno) << std::endl;
+            std::cerr << "libgvideo: Unable to map buffer[" << i << "]:" << strerror(errno) << std::endl;
             mmaped = false;
             return -1;
         }
@@ -775,7 +1177,7 @@ int GVDevice::unmap_buff()
                 if((mem[i] != MAP_FAILED) && buff_length[i])
                     if((ret=v4l2_munmap(mem[i], buff_length[i]))<0)
                     {
-                        std::cerr << "couldn't unmap buff:" << strerror(errno) << std::endl;
+                        std::cerr << "libgvideo: couldn't unmap buff:" << strerror(errno) << std::endl;
                     }
             }
     }
@@ -808,7 +1210,7 @@ int GVDevice::query_buff()
                 ret = xioctl(VIDIOC_QUERYBUF, &buf);
                 if (ret < 0) 
                 {
-                    std::cerr << "VIDIOC_QUERYBUF - Unable to query buffer:" << strerror(errno) << std::endl;
+                    std::cerr << "libgvideo: VIDIOC_QUERYBUF Unable to query buffer:" << strerror(errno) << std::endl;
                     if(errno == EINVAL)
                     {
                         std::cerr << "trying with read method instead\n";
@@ -817,7 +1219,7 @@ int GVDevice::query_buff()
                     return -1;
                 }
                 if (buf.length <= 0) 
-                    std::cerr << "WARNING VIDIOC_QUERYBUF - buffer length is " << buf.length << std::endl;
+                    std::cerr << "libgvideo: WARNING VIDIOC_QUERYBUF buffer length is " << buf.length << std::endl;
 
                 buff_length.push_back(buf.length);
                 buff_offset.push_back(buf.m.offset);
@@ -900,7 +1302,7 @@ int GVDevice::set_format(std::string fourcc, int twidth, int theight)
     ret = xioctl(VIDIOC_S_FMT, &fmt);
     if (ret < 0) 
     {
-        std::cerr << "VIDIOC_S_FORMAT - Unable to set format:" << strerror(errno) << std::endl;
+        std::cerr << "libgvideo: VIDIOC_S_FORMAT Unable to set format:" << strerror(errno) << std::endl;
         return -1;
     }
 
@@ -909,7 +1311,7 @@ int GVDevice::set_format(std::string fourcc, int twidth, int theight)
     if ((fmt.fmt.pix.width != width) ||
         (fmt.fmt.pix.height != height)) 
     {
-        std::cerr << "Requested Format unavailable: get width=" << fmt.fmt.pix.width
+        std::cerr << "libgvideo: Requested Format unavailable: get width=" << fmt.fmt.pix.width
             << " height=" << fmt.fmt.pix.height << std::endl;
 
         width = fmt.fmt.pix.width;
@@ -939,7 +1341,7 @@ int GVDevice::set_format(std::string fourcc, int twidth, int theight)
             ret = xioctl(VIDIOC_REQBUFS, &rb);
             if (ret < 0) 
             {
-                std::cerr << "VIDIOC_REQBUFS - Unable to allocate buffers:" << strerror(errno) << std::endl;
+                std::cerr << "libgvideo: VIDIOC_REQBUFS Unable to allocate buffers:" << strerror(errno) << std::endl;
                 return -2;
             }
             // map the buffers 
@@ -952,7 +1354,8 @@ int GVDevice::set_format(std::string fourcc, int twidth, int theight)
                 rb.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
                 rb.memory = V4L2_MEMORY_MMAP;
                 if(xioctl(VIDIOC_REQBUFS, &rb)<0)
-                    std::cerr << "VIDIOC_REQBUFS - Unable to delete buffers:" << strerror(errno) << std::endl;
+                    std::cerr << "libgvideo: VIDIOC_REQBUFS Unable to delete buffers:" 
+                        << strerror(errno) << std::endl;
                 return -3;
             }
             // Queue the buffers
@@ -965,7 +1368,8 @@ int GVDevice::set_format(std::string fourcc, int twidth, int theight)
                 rb.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
                 rb.memory = V4L2_MEMORY_MMAP;
                 if(xioctl(VIDIOC_REQBUFS, &rb)<0)
-                    std::cerr << "VIDIOC_REQBUFS - Unable to delete buffers:" << strerror(errno) << std::endl;
+                    std::cerr << "libgvideo: VIDIOC_REQBUFS Unable to delete buffers:" 
+                        << strerror(errno) << std::endl;
                 return -3;
             }
     }
@@ -1003,7 +1407,7 @@ UINT64 GVDevice::get_timestamp()
 int GVDevice::stream_on()
 {
     if(streaming) 
-        std::cerr << "WARNING: stream seems to be already on\n";
+        std::cerr << "libgvideo: WARNING: stream seems to be already on\n";
     int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     int ret=0;
     switch(method)
@@ -1017,7 +1421,8 @@ int GVDevice::stream_on()
             ret = xioctl(VIDIOC_STREAMON, &type);
             if (ret < 0) 
             {
-                std::cerr << "VIDIOC_STREAMON - Unable to start stream:" << strerror(errno) << std::endl;
+                std::cerr << "libgvideo: VIDIOC_STREAMON Unable to start stream:" 
+                    << strerror(errno) << std::endl;
                 return -1;
             }
             break;
@@ -1029,7 +1434,7 @@ int GVDevice::stream_on()
 int GVDevice::stream_off()
 {
     if(!streaming) 
-        std::cerr << "WARNING: stream seems to be already off\n";
+        std::cerr << "libgvideo: WARNING: stream seems to be already off\n";
     int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     int ret=0;
     switch(method)
@@ -1043,7 +1448,7 @@ int GVDevice::stream_off()
             ret = xioctl(VIDIOC_STREAMOFF, &type);
             if (ret < 0) 
             {
-                std::cerr << "VIDIOC_STREAMOFF - Unable to stop stream:" << strerror(errno) << std::endl;
+                std::cerr << "libgvideo: VIDIOC_STREAMOFF Unable to stop stream:" << strerror(errno) << std::endl;
                 if(errno == 9) streaming = false;/*capture as allready stoped*/
                 return -1;
             }
@@ -1077,12 +1482,12 @@ int GVDevice::grab_frame(UINT8* data)
     ret = select(fd + 1, &rdset, NULL, NULL, &timeout);
     if (ret < 0) 
     {
-        std::cerr << " Could not grab frame (select error)" << strerror(errno) << std::endl;
+        std::cerr << "libgvideo: Could not grab frame (select error)" << strerror(errno) << std::endl;
         return -2;
     } 
     else if (ret == 0)
     {
-        std::cerr << " Could not grab frame (select timeout)" << strerror(errno) << std::endl;
+        std::cerr << "libgvideo: Could not grab frame (select timeout)" << strerror(errno) << std::endl;
         return -3;
     }
     else if ((ret > 0) && (FD_ISSET(fd, &rdset))) 
@@ -1103,19 +1508,20 @@ int GVDevice::grab_frame(UINT8* data)
                     switch (errno) 
                     {
                         case EAGAIN:
-                            std::cerr << "No data available for read\n";
+                            std::cerr << "ligbvideo: No data available for read\n";
                             return -3;
                             break;
                         case EINVAL:
-                            std::cerr << "Read method error, try mmap instead:" << strerror(errno) << std::endl;
+                            std::cerr << "ligbvideo: Read method error, try mmap instead:" 
+                                << strerror(errno) << std::endl;
                             return -4;
                             break;
                         case EIO:
-                            std::cerr << "read I/O Error:" << strerror(errno) << std::endl;
+                            std::cerr << "ligbvideo: read I/O Error:" << strerror(errno) << std::endl;
                             return -4;
                             break;
                         default:
-                            std::cerr << "read:" << strerror(errno) << std::endl;
+                            std::cerr << "ligbvideo: read:" << strerror(errno) << std::endl;
                             return -4;
                             break;
                     }
@@ -1146,12 +1552,14 @@ int GVDevice::grab_frame(UINT8* data)
                     ret = xioctl(VIDIOC_DQBUF, &buf);
                     if (ret < 0) 
                     {
-                        std::cerr << "VIDIOC_DQBUF - Unable to dequeue buffer:" << strerror(errno) << std::endl;
+                        std::cerr << "ligbvideo: VIDIOC_DQBUF Unable to dequeue buffer:" 
+                            << strerror(errno) << std::endl;
                         ret = -5;
                         return ret;
                     }
                     buff_index = buf.index;
-                    ts = (UINT64) buf.timestamp.tv_sec * GV_NSEC_PER_SEC +  buf.timestamp.tv_usec * GV_MSEC_PER_SEC; //in nanosec
+                    ts = (UINT64) buf.timestamp.tv_sec * GV_NSEC_PER_SEC +  
+                        buf.timestamp.tv_usec * GV_MSEC_PER_SEC; //in nanosec
                     /* use buffer timestamp if set by the driver, otherwise use current system time */
                     if(ts > 0) timestamp[buff_index] = ts; 
                     else timestamp[buff_index] = time->ns_time_monotonic();
@@ -1160,7 +1568,8 @@ int GVDevice::grab_frame(UINT8* data)
                     ret = xioctl(VIDIOC_QBUF, &buf);
                     if (ret < 0) 
                     {
-                        std::cerr << "VIDIOC_QBUF - Unable to queue buffer:" << strerror(errno) << std::endl;
+                        std::cerr << "ligbvideo: VIDIOC_QBUF Unable to queue buffer:" 
+                            << strerror(errno) << std::endl;
                         ret = -6;
                         return ret;
                     }
@@ -1199,8 +1608,9 @@ int GVDevice::set_framerate (GVFps* frate)
     ret = xioctl(VIDIOC_S_PARM, &streamparm);
     if (ret < 0) 
     {
-        std::cerr << "Unable to set framerate to " << fps->num << "/" << fps->denom << std::endl;
-        std::cerr << "VIDIOC_S_PARM error:" << strerror(errno) << std::endl;
+        std::cerr << "ligbvideo: Unable to set framerate to " 
+            << fps->num << "/" << fps->denom << std::endl;
+        std::cerr << "ligbvideo: VIDIOC_S_PARM error:" << strerror(errno) << std::endl;
     } 
 
     /*make sure we now have the correct fps*/
@@ -1228,7 +1638,8 @@ bool GVDevice::get_fps (GVFps* frate/* = NULL*/)
     ret = xioctl(VIDIOC_G_PARM, &streamparm);
     if (ret < 0) 
     {
-        std::cerr << "VIDIOC_G_PARM - Unable to get timeperframe:" << strerror(errno) << std::endl;
+        std::cerr << "ligbvideo: VIDIOC_G_PARM Unable to get timeperframe:" 
+            << strerror(errno) << std::endl;
     } 
     else 
     {

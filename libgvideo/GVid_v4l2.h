@@ -39,6 +39,14 @@
 #define IO_MMAP 1
 #define IO_READ 2
 
+#ifndef V4L2_CID_IRIS_ABSOLUTE
+#define V4L2_CID_IRIS_ABSOLUTE		(V4L2_CID_CAMERA_CLASS_BASE +17)
+#endif
+#ifndef V4L2_CID_IRIS_RELATIVE
+#define V4L2_CID_IRIS_RELATIVE		(V4L2_CID_CAMERA_CLASS_BASE +18)
+#endif
+
+
 START_LIBGVIDEO_NAMESPACE
 
 class GVFps
@@ -67,11 +75,13 @@ struct VidFormats
 struct InputControl 
 {
     unsigned int i;
-    unsigned int id;
-    v4l2_ctrl_type type;
-    std::string name;
-    int min, max, step, default_val, enabled;
+    unsigned int ctrl_class;
+    struct v4l2_queryctrl control;
     std::vector<std::string> entries;
+    
+    int32_t value;
+    int64_t value64;
+    char *value_str;
 };
 
 class GVDevice 
@@ -115,6 +125,8 @@ class GVDevice
     int enum_frame_sizes( int pixfmt, int fmtind );
     int enum_frame_formats();
     int add_control(int n, struct v4l2_queryctrl *queryctrl);
+    void update_control_flags(int id);
+    void update_control_list_flags();
     int map_buff();
     int unmap_buff();
     int query_buff();
@@ -129,8 +141,11 @@ class GVDevice
     ~GVDevice();
     bool isOpen();
     void set_verbose(bool verbosity);
-    int get_control_val (int control_index, int * val);
-    int set_control_val (int control_index, int val);
+    int get_control_index(int id);
+    int get_control_val (int control_index);
+    void get_all_controls_val();
+    int set_control_val (int control_index);
+    void set_all_controls_val ();
     int set_format (std::string fourcc, int twidth, int theight);
     int get_format_index(std::string fourcc);
     int get_res_index(int format_index, int twidth, int theight);

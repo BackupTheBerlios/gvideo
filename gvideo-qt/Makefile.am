@@ -19,12 +19,12 @@ bin_PROGRAMS = gvideo-qt
 
 h_sources = gv_video_threads.h
 
-cpp_sources = GVideo.cpp gv_qt_window.cpp gv_video_threads.cpp gv_qt_pan-tilt_widget.cpp
+cpp_sources = GVideo.cpp gv_qt_window.cpp gv_video_threads.cpp gv_qt_controls_widget.cpp
 
 # We have one .hpp file, it's called moc_gv_qt_window.hpp. Therefore, here we list
 # its mocced name, moc_gv_qt_window.cpp.
 nodist_gvideo_qt_SOURCES = \
-    moc_gv_qt_window.cpp moc_gv_qt_pan-tilt_widget.cpp
+    moc_gv_qt_window.cpp moc_gv_qt_controls_widget.cpp
 
 # This is to ensure the *.hpp file is distributed in the source tarball
 EXTRA_DIST = \

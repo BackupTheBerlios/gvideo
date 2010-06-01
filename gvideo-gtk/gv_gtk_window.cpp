@@ -33,7 +33,6 @@
 #include <sstream>
 
 #include "gv_gtk_window.h"
-#include "gv_gtk_pan-tilt_widget.h"
 #include "gvcommon.h"
 #include "libgvideo/GVid_v4l2.h"
 #include "libgvencoder/GVCodec.h"
@@ -138,102 +137,14 @@ GtkWindow::GtkWindow(
               &GtkWindow::on_button_quit) );
               
               
-    controlTable = Gtk::manage(new Gtk::Table(3, dev->listControls.size(), false));
+    controlTable = Gtk::manage(new GtkControls(dev));
+    
     videoTable = Gtk::manage(new Gtk::Table(4, 10, false));
     audioTable = Gtk::manage(new Gtk::Table(4, 10, false));
     
     //image controls
     int i = 0;
     int j = 0;
-    
-    for(i=0; i < dev->listControls.size(); i++)
-    {
-        Gtk::Label  *control_label= Gtk::manage(new Gtk::Label(dev->listControls[i].name));
-        control_label->set_alignment(Gtk::ALIGN_LEFT, Gtk::ALIGN_CENTER);
-        controlTable->attach(*control_label, 0, 1, i, i+1, Gtk::SHRINK | Gtk::FILL, Gtk::SHRINK);
-        int val = 0;
-        
-        switch(dev->listControls[i].type)
-        {
-            case V4L2_CTRL_TYPE_MENU:
-                {
-                    Gtk::ComboBoxText* control_widget = Gtk::manage(new Gtk::ComboBoxText());
-                    for (j=0; j<dev->listControls[i].entries.size(); j++)
-                    {
-                        control_widget->append_text(dev->listControls[i].entries[j]);
-                    }
-                    if(dev->get_control_val (i, &val) != 0)
-                        control_widget->set_active(dev->listControls[i].default_val);
-                    else
-                        control_widget->set_active(val);
-                    controlTable->attach(*control_widget, 1, 2, i, i+1, Gtk::EXPAND | Gtk::FILL, Gtk::SHRINK);
-                    //Connect signal handler:
-                    control_widget->signal_changed().connect(sigc::bind<Gtk::ComboBoxText*, int>(
-                        sigc::mem_fun(*this, &GtkWindow::on_combo_changed), control_widget, i ));
-
-                }
-                break;
-                
-            case V4L2_CTRL_TYPE_BOOLEAN:
-                {
-                    Gtk::CheckButton *control_widget = Gtk::manage(new Gtk::CheckButton());
-                    if(dev->get_control_val (i, &val) != 0)
-                        control_widget->set_active(dev->listControls[i].default_val > 0);
-                    else
-                        control_widget->set_active(val > 0);
-                    controlTable->attach(*control_widget, 1, 2, i, i+1, Gtk::EXPAND | Gtk::FILL, Gtk::SHRINK);
-                    //Connect signal handler:
-                    control_widget->signal_clicked().connect(sigc::bind<Gtk::CheckButton*, int>(
-                        sigc::mem_fun(*this, &GtkWindow::on_check_button_clicked), control_widget, i ));
-
-                }
-                break;
-                
-            case V4L2_CTRL_TYPE_INTEGER:
-                {
-                    if(dev->listControls[i].id == V4L2_CID_PAN_RELATIVE)
-                    {
-                        GtkPanTilt *control_widget = new GtkPanTilt(dev, i, true);
-                        controlTable->attach(*control_widget, 1, 2, i, i+1, Gtk::EXPAND | Gtk::FILL, Gtk::SHRINK);
-                    }
-                    else if (dev->listControls[i].id == V4L2_CID_TILT_RELATIVE)
-                    {
-                        GtkPanTilt *control_widget = new GtkPanTilt(dev, i, false);
-                        controlTable->attach(*control_widget, 1, 2, i, i+1, Gtk::EXPAND | Gtk::FILL, Gtk::SHRINK);
-                    }
-                    else
-                    {
-                        Gtk::HScale *control_widget = Gtk::manage(new Gtk::HScale(
-                            dev->listControls[i].min, 
-                            dev->listControls[i].max, 
-                            dev->listControls[i].step ));
-                        if(dev->get_control_val (i, &val) != 0)
-                            control_widget->set_value(dev->listControls[i].default_val);
-                        else
-                            control_widget->set_value(val);
-                        controlTable->attach(*control_widget, 1, 2, i, i+1, Gtk::EXPAND | Gtk::FILL, Gtk::SHRINK);
-                        //Connect signal handler:
-                        control_widget->signal_value_changed().connect(sigc::bind<Gtk::HScale*, int>(
-                            sigc::mem_fun(*this, &GtkWindow::on_hscale_value_changed), control_widget, i ));
-                    }
-                }
-                break;
-                
-            case V4L2_CTRL_TYPE_BUTTON:
-                {
-                    Gtk::Button *control_widget = Gtk::manage(new Gtk::Button());
-                    controlTable->attach(*control_widget, 1, 2, i, i+1, Gtk::EXPAND | Gtk::FILL, Gtk::SHRINK);
-                    //Connect signal handler:
-                    control_widget->signal_clicked().connect(sigc::bind<Gtk::Button*, int>(
-                        sigc::mem_fun(*this, &GtkWindow::on_button_clicked), control_widget,i ));
-                }
-                break;
-            
-            default:
-                std::cerr << "Control tpye: " << std::hex << std::showbase 
-                    << dev->listControls[i].type << " not supported\n";
-        }
-    }
     
     //video stream definitions
     
@@ -376,59 +287,6 @@ GtkWindow::~GtkWindow()
     std::cout << "The Window was destroyed\n";
 }
 
-void GtkWindow::on_check_button_clicked(Gtk::CheckButton* checkButton, int cindex)
-{
-    int val = checkButton->get_active() ? 1 : 0;
-    if(!(dev->set_control_val (cindex, val)))
-            std::cout << dev->listControls[cindex].name << " = " << val << std::endl;
-    else
-    {
-        std::cerr << "ERROR:couldn't set " << dev->listControls[cindex].name << " = " << val << std::endl;
-        dev->get_control_val (cindex, &val);
-        if(val) checkButton->set_active(true);
-        else checkButton->set_active(false);
-    }
-}
-
-void GtkWindow::on_combo_changed(Gtk::ComboBoxText* comboBox, int cindex)
-{
-    int val = comboBox->get_active_row_number();
-    
-   if(!(dev->set_control_val (cindex, val)))
-            std::cout << dev->listControls[cindex].name << " = " << val << std::endl;
-    else
-    {
-        std::cerr << "ERROR:couldn't set " << dev->listControls[cindex].name << " = " << val << std::endl;
-        dev->get_control_val (cindex, &val);
-        comboBox->set_active(val);
-    }
-}
-
-void GtkWindow::on_hscale_value_changed(Gtk::HScale* hScale, int cindex)
-{
-    int val = hScale->get_value();
-    
-    if(!(dev->set_control_val (cindex, val)))
-            std::cout << dev->listControls[cindex].name << " = " << val << std::endl;
-    else
-    {
-        std::cerr << "ERROR:couldn't set " << dev->listControls[cindex].name << " = " << val << std::endl;
-        dev->get_control_val (cindex, &val);
-        hScale->set_value(val);
-    }
-}
-
-void GtkWindow::on_button_clicked(Gtk::Button* Button, int cindex)
-{
-    if(!(dev->set_control_val (cindex, 1)))
-    {
-        //std::cout << dev->listControls[cindex].name << " = " << val << std::endl;
-    }
-    else
-    {
-        std::cerr << "ERROR:couldn't set " << dev->listControls[cindex].name << std::endl;
-    }
-}
 void GtkWindow::on_video_format_combo_changed()
 {
     //get new format

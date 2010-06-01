@@ -294,11 +294,12 @@ int main (int argc, char *argv[])
         
         for(i=0; i<dev->listControls.size(); i++)
         {
-            cout << "  [" << i << "] " << dev->listControls[i].name 
-                << " { min=" << dev->listControls[i].min 
-                << " max=" << dev->listControls[i].max 
-                << " step=" << dev->listControls[i].step << " }\n";
-            if (dev->listControls[i].type == V4L2_CTRL_TYPE_MENU)
+            cout << "  [" << i << "] " << dev->listControls[i].control.name 
+                << " { min=" << dev->listControls[i].control.minimum 
+                << " max=" << dev->listControls[i].control.maximum 
+                << " step=" << dev->listControls[i].control.step 
+                << " default="<< dev->listControls[i].control.default_value <<" }\n";
+            if (dev->listControls[i].control.type == V4L2_CTRL_TYPE_MENU)
             {
                 cout << "    menu:\n";
                 for(j=0; j<dev->listControls[i].entries.size();j++)
@@ -328,15 +329,27 @@ int main (int argc, char *argv[])
     //set control
     if(options->opts->sc >= 0)
     {
-        if(!(dev->set_control_val (options->opts->sc, options->opts->val)))
-            cout << dev->listControls[options->opts->sc].name << " =" << options->opts->val << endl;
+        if(dev->listControls.size() > options->opts->sc)
+        {
+            dev->listControls[options->opts->sc].value = options->opts->val;
+            if(!(dev->set_control_val (options->opts->sc)))
+                cout << dev->listControls[options->opts->sc].control.name 
+                    << " =" << options->opts->val << endl;
+        }
+        else
+            cerr << "invalid control index\n";
     }
     //get control value
     if(options->opts->gc >= 0)
     {
-        int val;
-        dev->get_control_val (options->opts->gc, &val);
-        cout << dev->listControls[options->opts->gc].name << " =" << val << endl;
+        if(dev->listControls.size() > options->opts->sc)
+        {
+            dev->get_control_val (options->opts->gc);
+            cout << dev->listControls[options->opts->gc].control.name 
+                << " =" << dev->listControls[options->opts->gc].value << endl;
+        }
+         else
+            cerr << "invalid control index\n";
     }
     
     if(options->opts->fourcc.size() > 0)
