@@ -51,8 +51,10 @@ CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
 am__objects_1 =
-am__objects_2 = GVideo.$(OBJEXT) gv_gtk_window.$(OBJEXT) \
-	gv_video_threads.$(OBJEXT) gv_gtk_controls_widget.$(OBJEXT)
+am__objects_2 = gvideo_gtk-GVideo.$(OBJEXT) \
+	gvideo_gtk-gv_gtk_window.$(OBJEXT) \
+	gvideo_gtk-gv_video_threads.$(OBJEXT) \
+	gvideo_gtk-gv_gtk_controls_widget.$(OBJEXT)
 am_gvideo_gtk_OBJECTS = $(am__objects_1) $(am__objects_2)
 gvideo_gtk_OBJECTS = $(am_gvideo_gtk_OBJECTS)
 am__DEPENDENCIES_1 =
@@ -63,7 +65,7 @@ gvideo_gtk_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 	../$(GVENCODER_LIBRARY_NAME)/$(GVENCODER_LIBRARY_NAME).la \
 	../$(GVTHREADS_LIBRARY_NAME)/$(GVTHREADS_LIBRARY_NAME).la
 gvideo_gtk_LINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(gvideo_gtk_CXXFLAGS) \
 	$(CXXFLAGS) $(gvideo_gtk_LDFLAGS) $(LDFLAGS) -o $@
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
@@ -201,6 +203,8 @@ PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 PKG_CONFIG = @PKG_CONFIG@
+PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
+PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
 POFILES = @POFILES@
 POSUB = @POSUB@
 PO_IN_DATADIR_FALSE = @PO_IN_DATADIR_FALSE@
@@ -272,8 +276,7 @@ INCLUDES = \
            -DPACKAGE_LOCALE_DIR=\""$(prefix)/$(DATADIRNAME)/locale"\" \
            -DPACKAGE_SRC_DIR=\""$(srcdir)"\" \
            -DPACKAGE_DATA_DIR=\""$(datadir)"\" \
-           $(EXTRA_CFLAGS) -I$(top_srcdir) -I$(top_srcdir)/common \
-           $(GVIDEOGTK_CFLAGS)
+           $(EXTRA_CFLAGS) -I$(top_srcdir) -I$(top_srcdir)/common
 
 AM_CFLAGS = \
             -D_REENTRANT\
@@ -282,7 +285,7 @@ AM_CFLAGS = \
 h_sources = gv_gtk_window.h gv_video_threads.h gv_gtk_controls_widget.h
 cpp_sources = GVideo.cpp gv_gtk_window.cpp gv_video_threads.cpp gv_gtk_controls_widget.cpp
 gvideo_gtk_SOURCES = $(h_sources) $(cpp_sources)
-gvideo_gtk_CFLAGS = $(GVIDEOGTK_CFLAGS)
+gvideo_gtk_CXXFLAGS = $(GVIDEOGTK_CFLAGS) -D__STDC_CONSTANT_MACROS
 gvideo_gtk_LDFLAGS = $(LIBINTL)
 gvideo_gtk_LDADD = $(GVIDEOGTK_LIBS) \
                    ../$(GVIDEO_LIBRARY_NAME)/$(GVIDEO_LIBRARY_NAME).la \
@@ -378,10 +381,10 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/GVideo.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gv_gtk_controls_widget.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gv_gtk_window.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gv_video_threads.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gvideo_gtk-GVideo.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gvideo_gtk-gv_gtk_controls_widget.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gvideo_gtk-gv_gtk_window.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gvideo_gtk-gv_video_threads.Po@am__quote@
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -403,6 +406,62 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(LTCXXCOMPILE) -c -o $@ $<
+
+gvideo_gtk-GVideo.o: GVideo.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gvideo_gtk_CXXFLAGS) $(CXXFLAGS) -MT gvideo_gtk-GVideo.o -MD -MP -MF $(DEPDIR)/gvideo_gtk-GVideo.Tpo -c -o gvideo_gtk-GVideo.o `test -f 'GVideo.cpp' || echo '$(srcdir)/'`GVideo.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/gvideo_gtk-GVideo.Tpo $(DEPDIR)/gvideo_gtk-GVideo.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='GVideo.cpp' object='gvideo_gtk-GVideo.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gvideo_gtk_CXXFLAGS) $(CXXFLAGS) -c -o gvideo_gtk-GVideo.o `test -f 'GVideo.cpp' || echo '$(srcdir)/'`GVideo.cpp
+
+gvideo_gtk-GVideo.obj: GVideo.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gvideo_gtk_CXXFLAGS) $(CXXFLAGS) -MT gvideo_gtk-GVideo.obj -MD -MP -MF $(DEPDIR)/gvideo_gtk-GVideo.Tpo -c -o gvideo_gtk-GVideo.obj `if test -f 'GVideo.cpp'; then $(CYGPATH_W) 'GVideo.cpp'; else $(CYGPATH_W) '$(srcdir)/GVideo.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/gvideo_gtk-GVideo.Tpo $(DEPDIR)/gvideo_gtk-GVideo.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='GVideo.cpp' object='gvideo_gtk-GVideo.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gvideo_gtk_CXXFLAGS) $(CXXFLAGS) -c -o gvideo_gtk-GVideo.obj `if test -f 'GVideo.cpp'; then $(CYGPATH_W) 'GVideo.cpp'; else $(CYGPATH_W) '$(srcdir)/GVideo.cpp'; fi`
+
+gvideo_gtk-gv_gtk_window.o: gv_gtk_window.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gvideo_gtk_CXXFLAGS) $(CXXFLAGS) -MT gvideo_gtk-gv_gtk_window.o -MD -MP -MF $(DEPDIR)/gvideo_gtk-gv_gtk_window.Tpo -c -o gvideo_gtk-gv_gtk_window.o `test -f 'gv_gtk_window.cpp' || echo '$(srcdir)/'`gv_gtk_window.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/gvideo_gtk-gv_gtk_window.Tpo $(DEPDIR)/gvideo_gtk-gv_gtk_window.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='gv_gtk_window.cpp' object='gvideo_gtk-gv_gtk_window.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gvideo_gtk_CXXFLAGS) $(CXXFLAGS) -c -o gvideo_gtk-gv_gtk_window.o `test -f 'gv_gtk_window.cpp' || echo '$(srcdir)/'`gv_gtk_window.cpp
+
+gvideo_gtk-gv_gtk_window.obj: gv_gtk_window.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gvideo_gtk_CXXFLAGS) $(CXXFLAGS) -MT gvideo_gtk-gv_gtk_window.obj -MD -MP -MF $(DEPDIR)/gvideo_gtk-gv_gtk_window.Tpo -c -o gvideo_gtk-gv_gtk_window.obj `if test -f 'gv_gtk_window.cpp'; then $(CYGPATH_W) 'gv_gtk_window.cpp'; else $(CYGPATH_W) '$(srcdir)/gv_gtk_window.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/gvideo_gtk-gv_gtk_window.Tpo $(DEPDIR)/gvideo_gtk-gv_gtk_window.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='gv_gtk_window.cpp' object='gvideo_gtk-gv_gtk_window.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gvideo_gtk_CXXFLAGS) $(CXXFLAGS) -c -o gvideo_gtk-gv_gtk_window.obj `if test -f 'gv_gtk_window.cpp'; then $(CYGPATH_W) 'gv_gtk_window.cpp'; else $(CYGPATH_W) '$(srcdir)/gv_gtk_window.cpp'; fi`
+
+gvideo_gtk-gv_video_threads.o: gv_video_threads.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gvideo_gtk_CXXFLAGS) $(CXXFLAGS) -MT gvideo_gtk-gv_video_threads.o -MD -MP -MF $(DEPDIR)/gvideo_gtk-gv_video_threads.Tpo -c -o gvideo_gtk-gv_video_threads.o `test -f 'gv_video_threads.cpp' || echo '$(srcdir)/'`gv_video_threads.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/gvideo_gtk-gv_video_threads.Tpo $(DEPDIR)/gvideo_gtk-gv_video_threads.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='gv_video_threads.cpp' object='gvideo_gtk-gv_video_threads.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gvideo_gtk_CXXFLAGS) $(CXXFLAGS) -c -o gvideo_gtk-gv_video_threads.o `test -f 'gv_video_threads.cpp' || echo '$(srcdir)/'`gv_video_threads.cpp
+
+gvideo_gtk-gv_video_threads.obj: gv_video_threads.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gvideo_gtk_CXXFLAGS) $(CXXFLAGS) -MT gvideo_gtk-gv_video_threads.obj -MD -MP -MF $(DEPDIR)/gvideo_gtk-gv_video_threads.Tpo -c -o gvideo_gtk-gv_video_threads.obj `if test -f 'gv_video_threads.cpp'; then $(CYGPATH_W) 'gv_video_threads.cpp'; else $(CYGPATH_W) '$(srcdir)/gv_video_threads.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/gvideo_gtk-gv_video_threads.Tpo $(DEPDIR)/gvideo_gtk-gv_video_threads.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='gv_video_threads.cpp' object='gvideo_gtk-gv_video_threads.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gvideo_gtk_CXXFLAGS) $(CXXFLAGS) -c -o gvideo_gtk-gv_video_threads.obj `if test -f 'gv_video_threads.cpp'; then $(CYGPATH_W) 'gv_video_threads.cpp'; else $(CYGPATH_W) '$(srcdir)/gv_video_threads.cpp'; fi`
+
+gvideo_gtk-gv_gtk_controls_widget.o: gv_gtk_controls_widget.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gvideo_gtk_CXXFLAGS) $(CXXFLAGS) -MT gvideo_gtk-gv_gtk_controls_widget.o -MD -MP -MF $(DEPDIR)/gvideo_gtk-gv_gtk_controls_widget.Tpo -c -o gvideo_gtk-gv_gtk_controls_widget.o `test -f 'gv_gtk_controls_widget.cpp' || echo '$(srcdir)/'`gv_gtk_controls_widget.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/gvideo_gtk-gv_gtk_controls_widget.Tpo $(DEPDIR)/gvideo_gtk-gv_gtk_controls_widget.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='gv_gtk_controls_widget.cpp' object='gvideo_gtk-gv_gtk_controls_widget.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gvideo_gtk_CXXFLAGS) $(CXXFLAGS) -c -o gvideo_gtk-gv_gtk_controls_widget.o `test -f 'gv_gtk_controls_widget.cpp' || echo '$(srcdir)/'`gv_gtk_controls_widget.cpp
+
+gvideo_gtk-gv_gtk_controls_widget.obj: gv_gtk_controls_widget.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gvideo_gtk_CXXFLAGS) $(CXXFLAGS) -MT gvideo_gtk-gv_gtk_controls_widget.obj -MD -MP -MF $(DEPDIR)/gvideo_gtk-gv_gtk_controls_widget.Tpo -c -o gvideo_gtk-gv_gtk_controls_widget.obj `if test -f 'gv_gtk_controls_widget.cpp'; then $(CYGPATH_W) 'gv_gtk_controls_widget.cpp'; else $(CYGPATH_W) '$(srcdir)/gv_gtk_controls_widget.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/gvideo_gtk-gv_gtk_controls_widget.Tpo $(DEPDIR)/gvideo_gtk-gv_gtk_controls_widget.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='gv_gtk_controls_widget.cpp' object='gvideo_gtk-gv_gtk_controls_widget.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gvideo_gtk_CXXFLAGS) $(CXXFLAGS) -c -o gvideo_gtk-gv_gtk_controls_widget.obj `if test -f 'gv_gtk_controls_widget.cpp'; then $(CYGPATH_W) 'gv_gtk_controls_widget.cpp'; else $(CYGPATH_W) '$(srcdir)/gv_gtk_controls_widget.cpp'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo

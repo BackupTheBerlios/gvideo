@@ -4,8 +4,7 @@ INCLUDES = \
            -DPACKAGE_LOCALE_DIR=\""$(prefix)/$(DATADIRNAME)/locale"\" \
            -DPACKAGE_SRC_DIR=\""$(srcdir)"\" \
            -DPACKAGE_DATA_DIR=\""$(datadir)"\" \
-           $(EXTRA_CFLAGS) -I$(top_srcdir) -I$(top_srcdir)/common \
-           $(GVIDEOGTK_CFLAGS)
+           $(EXTRA_CFLAGS) -I$(top_srcdir) -I$(top_srcdir)/common
 
 AM_CFLAGS = \
             -D_REENTRANT\
@@ -19,7 +18,7 @@ cpp_sources = GVideo.cpp gv_gtk_window.cpp gv_video_threads.cpp gv_gtk_controls_
 
 gvideo_gtk_SOURCES = $(h_sources) $(cpp_sources)
 
-gvideo_gtk_CFLAGS = $(GVIDEOGTK_CFLAGS)
+gvideo_gtk_CXXFLAGS = $(GVIDEOGTK_CFLAGS) -D__STDC_CONSTANT_MACROS
 
 gvideo_gtk_LDFLAGS = $(LIBINTL)
 

@@ -749,10 +749,11 @@ void GVDevice::get_all_controls_val()
             ctrls.controls = clist;
             if(xioctl(VIDIOC_G_EXT_CTRLS, &ctrls))
             {
+                std::cerr << "libgvideo: VIDIOC_G_EXT_CTRLS failed for control list\n";
                 for(j=0; j< count; j++)
                 {
                     //get one by one
-                    get_control_val(clist[j].id);
+                    get_control_val(get_control_index(clist[j].id));
                 }
             }
             else
@@ -897,7 +898,7 @@ void GVDevice::set_all_controls_val ()
                 for(j=0; j< count; j++)
                 {
                     //set one by one
-                    set_control_val(clist[j].id);
+                    set_control_val(get_control_index(clist[j].id));
                 }
             }
             count = 0;

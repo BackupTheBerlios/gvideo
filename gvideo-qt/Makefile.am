@@ -4,8 +4,7 @@ INCLUDES = \
            -DPACKAGE_LOCALE_DIR=\""$(prefix)/$(DATADIRNAME)/locale"\" \
            -DPACKAGE_SRC_DIR=\""$(srcdir)"\" \
            -DPACKAGE_DATA_DIR=\""$(datadir)"\" \
-           $(EXTRA_CFLAGS) -I$(top_srcdir) -I$(top_srcdir)/common \
-           $(GVIDEOQT_CFLAGS)
+           $(EXTRA_CFLAGS) -I$(top_srcdir) -I$(top_srcdir)/common
 
 AM_CFLAGS = \
             -D_REENTRANT\
@@ -32,7 +31,7 @@ EXTRA_DIST = \
 
 gvideo_qt_SOURCES = $(h_sources) $(cpp_sources)
 
-gvideo_qt_CFLAGS = $(GVIDEOQT_CFLAGS)
+gvideo_qt_CXXFLAGS = $(GVIDEOQT_CFLAGS) -D__STDC_CONSTANT_MACROS
 
 gvideo_qt_LDFLAGS = $(LIBINTL)
 

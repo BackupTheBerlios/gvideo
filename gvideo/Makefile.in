@@ -51,7 +51,7 @@ CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
 am__objects_1 =
-am__objects_2 = GVideo.$(OBJEXT)
+am__objects_2 = gvideo-GVideo.$(OBJEXT)
 am_gvideo_OBJECTS = $(am__objects_1) $(am__objects_2)
 gvideo_OBJECTS = $(am_gvideo_OBJECTS)
 gvideo_DEPENDENCIES =  \
@@ -60,7 +60,7 @@ gvideo_DEPENDENCIES =  \
 	../$(GVAUDIO_LIBRARY_NAME)/$(GVAUDIO_LIBRARY_NAME).la \
 	../$(GVENCODER_LIBRARY_NAME)/$(GVENCODER_LIBRARY_NAME).la
 gvideo_LINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
-	--mode=link $(CXXLD) $(AM_CXXFLAGS) $(CXXFLAGS) \
+	--mode=link $(CXXLD) $(gvideo_CXXFLAGS) $(CXXFLAGS) \
 	$(gvideo_LDFLAGS) $(LDFLAGS) -o $@
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
@@ -130,6 +130,8 @@ GVIDEOGTK_CFLAGS = @GVIDEOGTK_CFLAGS@
 GVIDEOGTK_LIBS = @GVIDEOGTK_LIBS@
 GVIDEOLIB_CFLAGS = @GVIDEOLIB_CFLAGS@
 GVIDEOLIB_LIBS = @GVIDEOLIB_LIBS@
+GVIDEOQT_CFLAGS = @GVIDEOQT_CFLAGS@
+GVIDEOQT_LIBS = @GVIDEOQT_LIBS@
 GVIDEO_API_VERSION = @GVIDEO_API_VERSION@
 GVIDEO_CMD_NAME = @GVIDEO_CMD_NAME@
 GVIDEO_CMD_VERSION = @GVIDEO_CMD_VERSION@
@@ -138,6 +140,8 @@ GVIDEO_GTK_VERSION = @GVIDEO_GTK_VERSION@
 GVIDEO_LD_NAME = @GVIDEO_LD_NAME@
 GVIDEO_LIBRARY_NAME = @GVIDEO_LIBRARY_NAME@
 GVIDEO_LIBRARY_VERSION = @GVIDEO_LIBRARY_VERSION@
+GVIDEO_QT_NAME = @GVIDEO_QT_NAME@
+GVIDEO_QT_VERSION = @GVIDEO_QT_VERSION@
 GVRENDERLIB_CFLAGS = @GVRENDERLIB_CFLAGS@
 GVRENDERLIB_LIBS = @GVRENDERLIB_LIBS@
 GVRENDER_API_VERSION = @GVRENDER_API_VERSION@
@@ -185,6 +189,8 @@ PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 PKG_CONFIG = @PKG_CONFIG@
+PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
+PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
 POFILES = @POFILES@
 POSUB = @POSUB@
 PO_IN_DATADIR_FALSE = @PO_IN_DATADIR_FALSE@
@@ -256,7 +262,8 @@ INCLUDES = \
            -DPACKAGE_LOCALE_DIR=\""$(prefix)/$(DATADIRNAME)/locale"\" \
            -DPACKAGE_SRC_DIR=\""$(srcdir)"\" \
            -DPACKAGE_DATA_DIR=\""$(datadir)"\" \
-           $(EXTRA_CFLAGS) -I$(top_srcdir) -I$(top_srcdir)/common
+           $(EXTRA_CFLAGS) -I$(top_srcdir) -I$(top_srcdir)/common \
+           -D__STDC_CONSTANT_MACROS
 
 AM_CFLAGS = \
             -D_REENTRANT\
@@ -265,7 +272,7 @@ AM_CFLAGS = \
 h_sources = 
 cpp_sources = GVideo.cpp
 gvideo_SOURCES = $(h_sources) $(cpp_sources)
-gvideo_CFLAGS = $(GVIDEOCMD_CFLAGS)
+gvideo_CXXFLAGS = $(GVIDEOCMD_CFLAGS)
 gvideo_LDFLAGS = $(LIBINTL)
 gvideo_LDADD = $(GVIDEOCMD_LIBS) \
                    ../$(GVIDEO_LIBRARY_NAME)/$(GVIDEO_LIBRARY_NAME).la \
@@ -360,7 +367,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/GVideo.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/gvideo-GVideo.Po@am__quote@
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -382,6 +389,20 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(LTCXXCOMPILE) -c -o $@ $<
+
+gvideo-GVideo.o: GVideo.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gvideo_CXXFLAGS) $(CXXFLAGS) -MT gvideo-GVideo.o -MD -MP -MF $(DEPDIR)/gvideo-GVideo.Tpo -c -o gvideo-GVideo.o `test -f 'GVideo.cpp' || echo '$(srcdir)/'`GVideo.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/gvideo-GVideo.Tpo $(DEPDIR)/gvideo-GVideo.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='GVideo.cpp' object='gvideo-GVideo.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gvideo_CXXFLAGS) $(CXXFLAGS) -c -o gvideo-GVideo.o `test -f 'GVideo.cpp' || echo '$(srcdir)/'`GVideo.cpp
+
+gvideo-GVideo.obj: GVideo.cpp
+@am__fastdepCXX_TRUE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gvideo_CXXFLAGS) $(CXXFLAGS) -MT gvideo-GVideo.obj -MD -MP -MF $(DEPDIR)/gvideo-GVideo.Tpo -c -o gvideo-GVideo.obj `if test -f 'GVideo.cpp'; then $(CYGPATH_W) 'GVideo.cpp'; else $(CYGPATH_W) '$(srcdir)/GVideo.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/gvideo-GVideo.Tpo $(DEPDIR)/gvideo-GVideo.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='GVideo.cpp' object='gvideo-GVideo.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(gvideo_CXXFLAGS) $(CXXFLAGS) -c -o gvideo-GVideo.obj `if test -f 'GVideo.cpp'; then $(CYGPATH_W) 'GVideo.cpp'; else $(CYGPATH_W) '$(srcdir)/GVideo.cpp'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo

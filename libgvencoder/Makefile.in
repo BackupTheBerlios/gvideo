@@ -76,12 +76,14 @@ LTLIBRARIES = $(lib_LTLIBRARIES)
 am__DEPENDENCIES_1 =
 libgvencoder_la_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am__objects_1 =
-am__objects_2 = GVMatroska.lo GVJpeg_encoder.lo GVCodec.lo
+am__objects_2 = libgvencoder_la-GVMatroska.lo \
+	libgvencoder_la-GVJpeg_encoder.lo libgvencoder_la-GVCodec.lo
 am_libgvencoder_la_OBJECTS = $(am__objects_1) $(am__objects_2)
 libgvencoder_la_OBJECTS = $(am_libgvencoder_la_OBJECTS)
 libgvencoder_la_LINK = $(LIBTOOL) --tag=CXX $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
-	$(CXXFLAGS) $(libgvencoder_la_LDFLAGS) $(LDFLAGS) -o $@
+	$(LIBTOOLFLAGS) --mode=link $(CXXLD) \
+	$(libgvencoder_la_CXXFLAGS) $(CXXFLAGS) \
+	$(libgvencoder_la_LDFLAGS) $(LDFLAGS) -o $@
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -160,6 +162,8 @@ GVIDEOGTK_CFLAGS = @GVIDEOGTK_CFLAGS@
 GVIDEOGTK_LIBS = @GVIDEOGTK_LIBS@
 GVIDEOLIB_CFLAGS = @GVIDEOLIB_CFLAGS@
 GVIDEOLIB_LIBS = @GVIDEOLIB_LIBS@
+GVIDEOQT_CFLAGS = @GVIDEOQT_CFLAGS@
+GVIDEOQT_LIBS = @GVIDEOQT_LIBS@
 GVIDEO_API_VERSION = @GVIDEO_API_VERSION@
 GVIDEO_CMD_NAME = @GVIDEO_CMD_NAME@
 GVIDEO_CMD_VERSION = @GVIDEO_CMD_VERSION@
@@ -168,6 +172,8 @@ GVIDEO_GTK_VERSION = @GVIDEO_GTK_VERSION@
 GVIDEO_LD_NAME = @GVIDEO_LD_NAME@
 GVIDEO_LIBRARY_NAME = @GVIDEO_LIBRARY_NAME@
 GVIDEO_LIBRARY_VERSION = @GVIDEO_LIBRARY_VERSION@
+GVIDEO_QT_NAME = @GVIDEO_QT_NAME@
+GVIDEO_QT_VERSION = @GVIDEO_QT_VERSION@
 GVRENDERLIB_CFLAGS = @GVRENDERLIB_CFLAGS@
 GVRENDERLIB_LIBS = @GVRENDERLIB_LIBS@
 GVRENDER_API_VERSION = @GVRENDER_API_VERSION@
@@ -215,6 +221,8 @@ PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
 PKG_CONFIG = @PKG_CONFIG@
+PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
+PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
 POFILES = @POFILES@
 POSUB = @POSUB@
 PO_IN_DATADIR_FALSE = @PO_IN_DATADIR_FALSE@
@@ -291,7 +299,7 @@ library_include_HEADERS = $(h_sources)
 INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/common
 lib_LTLIBRARIES = libgvencoder.la
 libgvencoder_la_SOURCES = $(h_sources) $(cpp_sources)
-libgvencoder_la_CFLAGS = $(GVENCODERLIB_CFLAGS)
+libgvencoder_la_CXXFLAGS = $(GVENCODERLIB_CFLAGS) -D__STDC_CONSTANT_MACROS
 libgvencoder_la_LIBADD = $(GVENCODERLIB_LIBS)
 libgvencoder_la_LDFLAGS = -version-info $(GVENCODER_LIBRARY_VERSION) -release $(GVENCODER_API_VERSION)
 all: all-am
@@ -368,9 +376,9 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/GVCodec.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/GVJpeg_encoder.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/GVMatroska.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libgvencoder_la-GVCodec.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libgvencoder_la-GVJpeg_encoder.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libgvencoder_la-GVMatroska.Plo@am__quote@
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(CXXCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -392,6 +400,27 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(LTCXXCOMPILE) -c -o $@ $<
+
+libgvencoder_la-GVMatroska.lo: GVMatroska.cpp
+@am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libgvencoder_la_CXXFLAGS) $(CXXFLAGS) -MT libgvencoder_la-GVMatroska.lo -MD -MP -MF $(DEPDIR)/libgvencoder_la-GVMatroska.Tpo -c -o libgvencoder_la-GVMatroska.lo `test -f 'GVMatroska.cpp' || echo '$(srcdir)/'`GVMatroska.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libgvencoder_la-GVMatroska.Tpo $(DEPDIR)/libgvencoder_la-GVMatroska.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='GVMatroska.cpp' object='libgvencoder_la-GVMatroska.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libgvencoder_la_CXXFLAGS) $(CXXFLAGS) -c -o libgvencoder_la-GVMatroska.lo `test -f 'GVMatroska.cpp' || echo '$(srcdir)/'`GVMatroska.cpp
+
+libgvencoder_la-GVJpeg_encoder.lo: GVJpeg_encoder.cpp
+@am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libgvencoder_la_CXXFLAGS) $(CXXFLAGS) -MT libgvencoder_la-GVJpeg_encoder.lo -MD -MP -MF $(DEPDIR)/libgvencoder_la-GVJpeg_encoder.Tpo -c -o libgvencoder_la-GVJpeg_encoder.lo `test -f 'GVJpeg_encoder.cpp' || echo '$(srcdir)/'`GVJpeg_encoder.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libgvencoder_la-GVJpeg_encoder.Tpo $(DEPDIR)/libgvencoder_la-GVJpeg_encoder.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='GVJpeg_encoder.cpp' object='libgvencoder_la-GVJpeg_encoder.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libgvencoder_la_CXXFLAGS) $(CXXFLAGS) -c -o libgvencoder_la-GVJpeg_encoder.lo `test -f 'GVJpeg_encoder.cpp' || echo '$(srcdir)/'`GVJpeg_encoder.cpp
+
+libgvencoder_la-GVCodec.lo: GVCodec.cpp
+@am__fastdepCXX_TRUE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libgvencoder_la_CXXFLAGS) $(CXXFLAGS) -MT libgvencoder_la-GVCodec.lo -MD -MP -MF $(DEPDIR)/libgvencoder_la-GVCodec.Tpo -c -o libgvencoder_la-GVCodec.lo `test -f 'GVCodec.cpp' || echo '$(srcdir)/'`GVCodec.cpp
+@am__fastdepCXX_TRUE@	$(am__mv) $(DEPDIR)/libgvencoder_la-GVCodec.Tpo $(DEPDIR)/libgvencoder_la-GVCodec.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	source='GVCodec.cpp' object='libgvencoder_la-GVCodec.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(LIBTOOL)  --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libgvencoder_la_CXXFLAGS) $(CXXFLAGS) -c -o libgvencoder_la-GVCodec.lo `test -f 'GVCodec.cpp' || echo '$(srcdir)/'`GVCodec.cpp
 
 mostlyclean-libtool:
 	-rm -f *.lo
