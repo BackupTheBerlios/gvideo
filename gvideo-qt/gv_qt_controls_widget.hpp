@@ -77,7 +77,7 @@ class GVButton: public QPushButton
   protected:
     int index;
   public:
-    GVButton(int i, const QString name = 0, QWidget * parent = 0);
+    GVButton(int i, const QString name = "", QWidget * parent = 0);
     int get_index();
 };
 

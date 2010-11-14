@@ -32,6 +32,50 @@
 
 START_GVIDEOQT_NAMESPACE
 
+GVComboBox::GVComboBox( int i, QWidget * parent)
+    : QComboBox  (parent)
+{
+    index = i;
+}
+
+int GVComboBox::get_index()
+{
+    return index;
+}
+
+GVCheckBox::GVCheckBox( int i, QWidget * parent)
+    : QCheckBox  (parent)
+{
+    index = i;
+}
+
+int GVCheckBox::get_index()
+{
+    return index;
+}
+
+GVSlider::GVSlider( int i, QWidget * parent )
+    : QSlider  (Qt::Horizontal, parent)
+{
+    index = i;
+}
+
+int GVSlider::get_index()
+{
+    return index;
+}
+
+GVButton::GVButton( int i, const QString name, QWidget * parent )
+    : QPushButton  (name, parent)
+{
+    index = i;
+}
+
+int GVButton::get_index()
+{
+    return index;
+}
+
 GVPanTiltWidget::GVPanTiltWidget( libgvideo::GVDevice* device, int index, bool is_pan, QWidget * parent)
     : QWidget  (parent)
 {
@@ -248,7 +292,7 @@ GVControlsWidget::GVControlsWidget( libgvideo::GVDevice* device, QWidget * paren
                 
             case V4L2_CTRL_TYPE_BUTTON:
                 {
-                    GVButton *control_widget = new GVButton( i );
+                    GVButton *control_widget = new GVButton(i);
                     ctrl_ent->addWidget(control_widget);
                     widgets_list.push_back(ctrl_ent);
                     

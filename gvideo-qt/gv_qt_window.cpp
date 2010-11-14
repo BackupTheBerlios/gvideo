@@ -38,50 +38,6 @@
 
 START_GVIDEOQT_NAMESPACE
 
-GVComboBox::GVComboBox( int i, QWidget * parent)
-    : QComboBox  (parent)
-{
-    index = i;
-}
-
-int GVComboBox::get_index()
-{
-    return index;
-}
-
-GVCheckBox::GVCheckBox( int i, QWidget * parent)
-    : QCheckBox  (parent)
-{
-    index = i;
-}
-
-int GVCheckBox::get_index()
-{
-    return index;
-}
-
-GVSlider::GVSlider( int i, QWidget * parent )
-    : QSlider  (Qt::Horizontal, parent)
-{
-    index = i;
-}
-
-int GVSlider::get_index()
-{
-    return index;
-}
-
-GVButton::GVButton( int i, const QString name, QWidget * parent )
-    : QPushButton  (name, parent)
-{
-    index = i;
-}
-
-int GVButton::get_index()
-{
-    return index;
-}
-
 QtWindow::QtWindow(
         libgvideo::GVDevice* _dev, 
         libgvaudio::GVAudio* _audio,

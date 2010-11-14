@@ -115,6 +115,7 @@ class GVDevice
     int cap_meth;
     
     int xioctl(int IOCTL_X, void *arg);
+    int query_ioctl(int hdevice, int current_ctrl, struct v4l2_queryctrl *queryctrl);
     int check_input();
     int check_controls();
     

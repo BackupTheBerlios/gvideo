@@ -603,6 +603,22 @@ int GVDevice::add_control(int n, struct v4l2_queryctrl *queryctrl)
     //std::cout << "finished \n";
 }
 
+int GVDevice::query_ioctl(int hdevice, int current_ctrl, struct v4l2_queryctrl *queryctrl)
+{
+    int ret = 0;
+    int tries = 4;
+    do 
+    {
+        if(ret) 
+            queryctrl->id = current_ctrl | V4L2_CTRL_FLAG_NEXT_CTRL;
+        ret = v4l2_ioctl(hdevice, VIDIOC_QUERYCTRL, queryctrl);
+    } 
+    while (ret && tries-- &&
+        ((errno == EIO || errno == EPIPE || errno == ETIMEDOUT)));
+        
+    return(ret);
+}
+
 int GVDevice::check_controls()
 {
     int ret=0;
@@ -612,47 +628,50 @@ int GVDevice::check_controls()
 
     queryctrl.id = 0 | V4L2_CTRL_FLAG_NEXT_CTRL;
 
-    if ((ret=xioctl (VIDIOC_QUERYCTRL, &queryctrl)) == 0)
+    if ((ret=query_ioctl (fd, 0, &queryctrl)) == 0)
     {
         if (verbose) 
-            std::cout << "V4L2_CTRL_FLAG_NEXT_CTRL supported\n";
+            std::cout << "libgvideo: V4L2_CTRL_FLAG_NEXT_CTRL supported\n";
         // The driver supports the V4L2_CTRL_FLAG_NEXT_CTRL flag
         queryctrl.id = 0;
         int currentctrl= queryctrl.id;
         queryctrl.id |= V4L2_CTRL_FLAG_NEXT_CTRL;
 
         // Loop as long as ioctl does not return EINVAL
-        // don't use xioctl here since we must reset queryctrl.id every retry (is this realy true ??)
-        while((ret = v4l2_ioctl(fd, VIDIOC_QUERYCTRL, &queryctrl)), ret ? errno != EINVAL : 1) 
+        while((ret = query_ioctl(fd, currentctrl, &queryctrl)), ret ? errno != EINVAL : 1)
         {
 
-            if(ret && (errno == EIO || errno == EPIPE || errno == ETIMEDOUT))
-            {
-                // I/O error RETRY
-                queryctrl.id = currentctrl | V4L2_CTRL_FLAG_NEXT_CTRL;
-                tries = 4;
-                while(tries-- &&
-                    (ret = v4l2_ioctl(fd, VIDIOC_QUERYCTRL, &queryctrl)) &&
-                    (errno == EIO || errno == EPIPE || errno == ETIMEDOUT)) 
-                {
-                    queryctrl.id = currentctrl | V4L2_CTRL_FLAG_NEXT_CTRL;
-                }
-                if ( ret && ( tries <= 0)) 
-                    std::cerr << "libgvideo: Failed to query control id=" << currentctrl 
-                        << "tried 4 times - giving up:" << strerror(errno) << std::endl;
-            }
-            // Prevent infinite loop for buggy NEXT_CTRL implementations
+            // Prevent infinite loop for buggy V4L2_CTRL_FLAG_NEXT_CTRL implementations
             if(ret && queryctrl.id <= currentctrl) 
             {
+                std::cerr << "libgvideo: buggy V4L2_CTRL_FLAG_NEXT_CTRL flag implementation " <<
+                    "(workaround enabled)\n";
+                // increment the control id manually
                 currentctrl++;
+                queryctrl.id = currentctrl;
                 goto next_control;
             }
+            else if ((queryctrl.id == V4L2_CTRL_FLAG_NEXT_CTRL) || (!ret && queryctrl.id == currentctrl))
+            {
+                std::cerr << "libgvideo: buggy V4L2_CTRL_FLAG_NEXT_CTRL flag implementation" << 
+                    "(failed enumeration for id=" << queryctrl.id << ")\n";
+                // stop control enumeration
+                return ret;
+            }
+            
             currentctrl = queryctrl.id;
 
             // skip if control is disabled or failed
-            if (ret || (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED))
+            if (ret)
+            {
+                std::cerr << "libgvideo: control " << queryctrl.id << " failed to query\n";
                 goto next_control;
-
+            }
+            if (queryctrl.flags & V4L2_CTRL_FLAG_DISABLED)
+            {
+                std::cerr << "libgvideo: control " << queryctrl.id << " disabled\n";
+                goto next_control;
+            }
             // Add control to control list
             n++;
             add_control(n, &queryctrl);
@@ -664,7 +683,7 @@ next_control:
     else //NEXT_CTRL flag not supported, use old method 
     {
         if (verbose)
-            std::cout << "V4L2_CTRL_FLAG_NEXT_CTRL not supported\n";
+            std::cout << "libgvideo: V4L2_CTRL_FLAG_NEXT_CTRL not supported\n";
         int currentctrl;
         for(currentctrl = V4L2_CID_BASE; currentctrl < V4L2_CID_LASTP1; currentctrl++) 
         {
@@ -707,6 +726,7 @@ next_control:
     
     //get the controls current value
     get_all_controls_val();
+    return ret;
 }
 
 /* runs the control list and gets the controls values
